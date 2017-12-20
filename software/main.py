@@ -1,26 +1,25 @@
-import glob
+#Fait par Philippe Cotte 
+#Décembre 2017.
+#CEA Saclay / Irfu / DPhP
+
+
 import sys
 import os
 import getopt
-import shutil
-import matplotlib.pyplot as plt
-import collections
-import numpy as np
-import math
-from sklearn import linear_model
 from sortedcontainers import SortedDict
-from numbers import Number
+
+from my_analysis import my_analysis
 
 def usage():
-  prfloat("Usage is:")
-  prfloat("-h : print this message")
-  prfloat("-i path/to/file : input data file")
-  prfloat("-c : optional config file, where one can specify x or z cuts")
+  print("Usage is:")
+  print("-h : print this message")
+  print("-i path/to/file : input data file")
+  print("-c : optional config file, where one can specify x or z cuts")
   
   
 def load_cuts(my_cut_file):
   if not os.path.isfile(my_cut_file):
-    prfloat("ERROR: cut file " + my_cut_file + " not found.")
+    print("ERROR: cut file " + my_cut_file + " not found.")
     exit(0)
   cutfile = open(my_cut_file,"r")
   cuts = cutfile.readlines()
@@ -30,14 +29,14 @@ def load_cuts(my_cut_file):
   for cut in cuts:
     cut = cut.split("\n")[0]
     if len(cut.split(" ")) != 3:
-      prfloat("load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
+      print("load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
       exit(0)
     if cut.split(" ")[0] == "x":
       cutx.append([cut.split(" ")[1],cut.split(" ")[2]])
     elif cut.split(" ")[0] == "z":
       cutz.append([cut.split(" ")[1],cut.split(" ")[2]])
     else:
-      prfloat("2 load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
+      print("2 load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
       exit(0)
   return [cutx,cutz]
       
@@ -120,7 +119,7 @@ def main(argv):
   try:
     opts, args = getopt.getopt(sys.argv[1:], "hi:c:", [])
   except getopt.GetoptError as err:
-    prfloat(str(err))
+    print(str(err))
     usage()
     exit(0)
   for opt, arg in opts:
@@ -134,17 +133,17 @@ def main(argv):
       opt_data_file = True
       data_file_arg = arg
     else:
-      prfloat("Unrecognized arguments")
+      print("Unrecognized arguments")
       usage()
   
   if not opt_data_file:
-    prfloat("ERROR: need a data file.")
+    print("ERROR: need a data file.")
   if not os.path.isfile(data_file_arg):
-    prfloat("ERROR: data file " + data_file_arg + " file not found.")
+    print("ERROR: data file " + data_file_arg + " file not found.")
     exit(0)
   if opt_cut_file:
     if not os.path.isfile(cut_file_arg):
-      prfloat("ERROR: cut file " + data_file_arg + " not found.")
+      print("ERROR: cut file " + data_file_arg + " not found.")
       exit(0)
 
   data_file = open(data_file_arg, "r")
@@ -154,55 +153,14 @@ def main(argv):
   for line in lines:
     raw_data[float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
   
-  #for x in sorted(raw_data.iterkeys()):
-    #prfloat(x + " " + raw_data[x])
   cut_data = []
-  raw_data_cuts = raw_data
   if opt_cut_file:
+    raw_data_cuts = raw_data
     cut_data = apply_cuts(raw_data, raw_data_cuts, load_cuts(cut_file_arg))
-    
-  marble_x = np.array(0)
-  marble_z = np.array(0)
-  marble_x, marble_z = zip(*sorted(cut_data[0].items()))
-  marble_data = SortedDict()
-  for x in cut_data[0]:
-    if not abs(np.mean(marble_z)-cut_data[0][x]) > 4*math.sqrt(np.var(marble_z)):
-      marble_data[x] = cut_data[0][x]
-  marble_x, marble_z = zip(*sorted(cut_data[-1].items()))
-  for x in cut_data[-1]:
-    if not abs(np.mean(marble_z)-cut_data[-1][x]) > 4*math.sqrt(np.var(marble_z)):
-      marble_data[x] = cut_data[-1][x]
+  else:
+    cut_data.append(raw_data)
   
-  marble_x, marble_z = zip(*sorted(marble_data.items()))
-  marble_x = np.array(marble_x)
-  marble_z = np.array(marble_z)
-  marble_regr = linear_model.LinearRegression()
-  marble_regr.fit(marble_x[:,np.newaxis], marble_z)
-  x_test = np.linspace(np.min(marble_x), np.max(marble_x), 100)
-  plt.figure(0)
-  plt.title("Marble Height vs length")
-  plt.xlabel('x(micrometer)', fontsize=18)
-  plt.ylabel('z(micrometer)', fontsize=16)
-  plt.scatter(marble_x, marble_z, color='black')
-  plt.plot(x_test, marble_regr.predict(x_test[:,np.newaxis]), color='blue', linewidth=3)
-  plt.savefig("marble.pdf")
-  
-  holes_data = [SortedDict()]
-  for hole in cut_data[1:-1]:
-    for x in hole:
-      holes_data[-1][x] = hole[x]-marble_regr.predict(hole[x])[0]
-    holes_data.append(SortedDict())
-  holes_data = holes_data[:-1]
-  plt.figure(1)
-  plt.title("Holes Height vs length")
-  plt.xlabel('x(micrometer)', fontsize=18)
-  plt.ylabel('z(micrometer)', fontsize=16)
-  for hole in holes_data:
-    print(len(hole))
-    x, z = zip(*sorted(hole.items()))
-    plt.scatter(x, z, color='black')
-  plt.show()
-  plt.savefig("holes.pdf")
+  my_analysis(cut_data)
   
 if __name__ == '__main__':
   if len(sys.argv) == 1:
