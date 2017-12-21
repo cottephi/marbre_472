@@ -21,6 +21,7 @@ def marble(l_sd_data):
         l_sd_marble_data[1][x] = l_sd_data[-1][x]
   if len(l_sd_data) >2:
     l_sd_data = marble_fit(l_sd_marble_data, l_sd_data)
+    return l_sd_data
   else:
     marble_fit(l_sd_marble_data)
 
@@ -52,7 +53,7 @@ def plot_fit(l_marble_xzdata, lr_fit):
   npl_x_test = np.linspace(np.min(npa_x), np.max(npa_x), 100)
   df_z = [pandas.DataFrame({'z':list(l_marble_xzdata[2][0].values())})]
   fig = plt.figure(0,figsize=(12, 12))
-  fig.tight_layout()
+  #plt.tight_layout()
   sb1 = fig.add_subplot(211)
   sb1.set_title("Marble Height vs length")
   sb1.set_xlabel('x(micrometer)', fontsize=14)
@@ -85,4 +86,4 @@ def plot_fit(l_marble_xzdata, lr_fit):
     print("marble_fit::plot_fit ERROR : wrong size for marble z data")
     exit(1)
   plt.savefig("marble.pdf",bbox_inches = "tight")
-  plt.show()
+  #plt.show()
