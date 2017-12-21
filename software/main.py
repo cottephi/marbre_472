@@ -149,18 +149,18 @@ def main(argv):
   data_file = open(data_file_arg, "r")
   lines = data_file.readlines()[1:]
   data_file.close()
-  raw_data = SortedDict()
+  sd_raw_data = SortedDict()
   for line in lines:
-    raw_data[float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
+    sd_raw_data[float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
   
-  cut_data = []
+  l_sd_data = []
   if opt_cut_file:
-    raw_data_cuts = raw_data
-    cut_data = apply_cuts(raw_data, raw_data_cuts, load_cuts(cut_file_arg))
+    sd_raw_data_cuts = sd_raw_data
+    l_sd_data = apply_cuts(sd_raw_data, sd_raw_data_cuts, load_cuts(cut_file_arg))
   else:
-    cut_data.append(raw_data)
+    l_sd_data.append(sd_raw_data)
   
-  my_analysis(cut_data)
+  my_analysis(l_sd_data)
   
 if __name__ == '__main__':
   if len(sys.argv) == 1:

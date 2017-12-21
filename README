@@ -1,0 +1,46 @@
+Pour lancer le programme, il faut avoir python3, avec les paquet matplotlib, sklearn, numpy et sortedcontainers. Ils sont installables avec les commandes suivantes (sous ubuntu) :
+
+sudo apt-get install python3 -------- pour installer python3
+sudo apt-get install python3-pip -------- pour installer le gestionnaire de paquet python
+pip3 install sklearn -------- pour installer le paquet sklearn 
+pip3 install sortedcontainers -------- pour installer le paquet sortedcontainers
+pip3 install matplotlib -------- pour installer le paquet matplotlib
+pip3 install numpy -------- pour installer le paquet numpy
+
+Le programme est constitué de 3 parties : 
+-main.py
+-marble_fit.py
+-my_analysis.py
+
+Ces trois fichiers sont citués dans le dossier "software". Il est important de les laisser tous dans le même dossier. 
+Pour lancer le programme, écrivez dans votre terminal :
+
+python3 main.py -i datafile -c cutfile
+
+datafile est le chemin jusqu'à votre fichier de données en format csv (où colonne 1=z et colonne 5=x). Il est obligatoire. cutfile est le chemin jusqu'au fichier de cuts. Il est facultatif.
+
+Le fichier de cuts sert à spécifier des zones d'analyse à ignorer. Vous pouvez indiquer une ou plusieurs plages de valeurs à ignorer, en x ou en z. Il doit avoir le format suivant : 
+x 90000 155000
+x 172500 265000
+x 282500 375000
+x 391500 485000
+x 501500 595000
+x 612500 635000
+z 0 0
+z 4000 inf
+
+La première colonne dit si la zone à ignorer est selon x ou z. La seconde colonne donne le point de départ de la colonne à ignorer, la troisième colonne le point d'arriver. Si le point de départ est -inf, toutes les valeurs inférieur au point d'arriver sont ignorées. Inversement si le point de départ est inf (pas +inf). Si départ et arrivées sont identiques, seul ce point est ignoré.
+Quand le programme effectue des cuts, il sépare de jeu de données en régions de mesures, séparées par les régions ignorées (sauf quand un point unique est ignoré, comme dans l'avant dernière ligne de l'exemple au dessus). Il est alors plus facile de séparer des zones d'intérêt.
+Si aucun fichier de cut n'est spécifé, cette partie est ignorée est le programme traite toutes les données d'un coup.
+
+Le programme peut faire une régression linéaire des données pour déterminer la pente du marbre, qu'il utilisera alors pour corriger les mesures dans les autres régions. Cette option est activée par défaut : le programme considère la première et dernière région de donnée comme étant du marbre, et les utilise pour la régression (si il n'y a qu'une région, il n'utilise que celle-ci). Les "vraies mesures" sont alors les régions entre la première et la dernière. Il est possible de désactiver ceci à la ligne : 
+
+my_analysis(cut_data)
+
+en rajoutant un bouléen False : 
+
+my_analysis(cut_data, False)
+
+Le fichier main.py lit les arguments, cherche les fichiers, effectue les cuts si besoin. il appelle ensuite le fichier my_analysis.py, où chacun peut analyser les données en fonction de ses besoins. Pour l'exemple ici, il s'agit de données séparées en 5 régions. On s'intéresse à l'uniformité de la coordonnées z.
+Les premières lignes my_analysis appellent les fonctions de marble_fit.py, pour corriger les données avec la pente du marbre.
+
