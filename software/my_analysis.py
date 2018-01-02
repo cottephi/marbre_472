@@ -21,8 +21,8 @@ def plot_data(l_sd_data, row = 1):
   k = 0
   plot_range_sup = [0,0]
   plot_range_inf = [0,0]
-  for i in range(0,len(l_sd_data)):#j'utilise le range de la heuteur du prmier trou comme reference, pour avoir le meme range pour tous les trous
-    if i % row == 0:
+  for i in range(0,len(l_sd_data)):
+    if i % row == 0:#j'utilise le range de la hauteur du premier trou comme reference, pour avoir le meme range pour tous les trous
       l_sd_all_data.append(l_sd_data[0].copy())
       k = k + 1
     sd_z_sup = SortedDict((x,l_sd_data[i][x]) for x in l_sd_data[i] if l_sd_data[i][x] > (np.array(list(l_sd_data[i].values())).max()-np.array(list(l_sd_data[i].values())).min())/2)
@@ -49,7 +49,7 @@ def plot_data(l_sd_data, row = 1):
     sb[0][i].set_title('hole ' + str(i+1) + ' Marble', fontsize=14)
     sb[0][i].set_xlabel('z(micrometer)', fontsize=14)
     sb[0][i].set_ylabel('count', fontsize=12)
-    i_count_inf, _ , _ = sb[0][i].hist(df_z_inf['z'], bins='auto', range = [plot_range_inf[0],plot_range_inf[1]], color = 'C1')
+    i_count_inf, _ , _ = sb[0][i].hist(df_z_inf['z'], bins='auto', range = [plot_range_inf[0],plot_range_inf[1]])#, color = 'C1')
     #gaussfit(df_z_inf['z'], sb[0][i])
     statbox = FormStatBox(df_z_inf['z'])
     sb[0][i].text(plot_range_inf[0], 0.9*i_count_inf.max(), statbox,horizontalalignment='left')
@@ -58,10 +58,10 @@ def plot_data(l_sd_data, row = 1):
     sb[1].append(plt.Subplot(fig, inner[1]))
     sb[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize=14)
     sb[1][i].set_xlabel('z(micrometer)', fontsize=14)
-    i_count_sup, binned_z , _ = sb[1][i].hist(df_z_sup['z'], bins='auto', range = [plot_range_sup[0],plot_range_sup[1]], color = 'C0')
+    i_count_sup, binned_z , _ = sb[1][i].hist(df_z_sup['z'], bins='auto', range = [plot_range_sup[0],plot_range_sup[1]])#, color = 'C0')
     binned_z = binned_z[:-1]
     fit_par = [len(l_sd_data[i])/2,1050,math.sqrt(float(df_z_sup.var()))/2,len(l_sd_data[i])/2,1100,math.sqrt(float(df_z_sup.var()))/2]
-    doublegaussfit(binned_z, i_count_sup, fit_par)
+    doublegaussfit(binned_z, i_count_sup, fit_par, sb[1][i])
     #gaussfit(df_z_sup['z'], sb[1][i])
     statbox = FormStatBox(df_z_sup['z'])
     sb[1][i].text(plot_range_sup[0], 0.9*i_count_sup.max(), statbox,horizontalalignment='left')
@@ -81,9 +81,9 @@ def plot_data(l_sd_data, row = 1):
     if i == row-1:
       sb[i].set_xlabel('x(micrometer)', fontsize=14)
     sb[i].set_ylabel('z(micrometer)', fontsize=12)
-    plt.savefig("holes.pdf")
-    #plt.show()
-    plt.clf()
+  plt.savefig("holes.pdf")
+  #plt.show()
+  plt.clf()
 
 def GetNcolNrow(l_sd_data):
   if int(math.sqrt(len(l_sd_data))) == math.sqrt(len(l_sd_data)):

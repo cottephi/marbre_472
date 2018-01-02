@@ -1,5 +1,5 @@
 #Fait par Philippe Cotte 
-#Décembre 2017.
+#Decembre 2017.
 #CEA Saclay / Irfu / DPhP
 
 from glob import glob
@@ -21,25 +21,39 @@ def usage():
 def load_cuts(my_cut_file):
   if not os.path.isfile(my_cut_file):
     print("ERROR: cut file " + my_cut_file + " not found.")
-    exit(0)
+    exit(1)
   cutfile = open(my_cut_file,"r")
   cuts = cutfile.readlines()
   cutfile.close()
   cutx = []
   cutz = []
+  file_marble_file = []
+  file_calle_file = []
   for cut in cuts:
     cut = cut.split("\n")[0]
-    if len(cut.split(" ")) != 3:
+    if len(cut.split(" ")) != 3 and cut.split(" ")[0] != "MARBLE" and cut.split(" ")[0] != "CALLE":
       print("load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
-      exit(0)
+      exit(1)
     if cut.split(" ")[0] == "x":
       cutx.append([cut.split(" ")[1],cut.split(" ")[2]])
     elif cut.split(" ")[0] == "z":
       cutz.append([cut.split(" ")[1],cut.split(" ")[2]])
+    elif cut.split(" ")[0] == "MARBLE":
+      if glob(cut.split(" ")[1]):
+        file_marble_file = sorted(glob(cut.split(" ")[1]))
+      else:
+        print("ERROR : could not find Marble reference file")
+        exit(1)
+    elif cut.split(" ")[0] == "CALLE":
+      if glob(cut.split(" ")[1]):
+        file_calle_file = sorted(glob(cut.split(" ")[1]))
+      else:
+        print("ERROR : could not find calle file")
+        exit(1)
     else:
       print("2 load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
-      exit(0)
-  return [cutx,cutz]
+      exit(1)
+  return [[cutx,cutz], file_marble_file, file_calle_file]
       
       
 def apply_cuts(rawdata, cuts):
@@ -47,6 +61,9 @@ def apply_cuts(rawdata, cuts):
   cutdata.append(SortedDict())
   new_set = False
   ignore = False
+  file_marble_file = cuts[1]
+  file_calle_file = cuts[2]
+  cuts = cuts[0]
   for x in rawdata:    #loop over data
     for cut in cuts[0]:    #for each x-z, loop over the x-cuts to see if the x-z pair must be ignored 
       if cut[0] == cut[1] and float(x) == float(cut[0]):    #if the cut is a single point and not a range and x or y matches a single cut, ignore the value but does not create a new data set
@@ -98,7 +115,7 @@ def apply_cuts(rawdata, cuts):
       cutdata[-1][x] = rawdata[x]
       new_set = False
       
-  return cutdata
+  return [cutdata,file_marble_file, file_calle_file]
   
 def main(argv):
 
@@ -110,6 +127,8 @@ def main(argv):
   
   #Doit etre Vrai si des mesures du marbres ont ete prises avant ET apres la mesure, ou si que le marbre a ete mesure.
   do_marble_fit = True
+  file_marble_file = []
+  file_calle_file = []
   
   #Read the arguments
   try:
@@ -158,14 +177,28 @@ def main(argv):
       lines = lines[1:]
     sd_raw_data = SortedDict() #SortedDict va automatiquement trier les donnees par ordre croissant en x. Donc peut importe dans quelle ordre elles ont ete prise, tout sera comme il faut.
     for line in lines:
-      sd_raw_data[float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
+      conti = False
+      x = float(line.split("\n")[0].split(";")[4])
+      x_tmp = x
+      z = float(line.split("\n")[0].split(";")[0])
+      while x_tmp in sd_raw_data:
+        x_tmp = x_tmp+0.01
+        if x_tmp > x + 1:
+          conti = True
+          break
+      if conti:
+        continue
+      sd_raw_data[x_tmp] = z
 
     if opt_cut_file:
-      tmp_l_sd_data = apply_cuts(sd_raw_data, load_cuts(cut_file_arg))
+      tmp_l_sd_data,file_marble_file, file_calle_file = apply_cuts(sd_raw_data, load_cuts(cut_file_arg))
     else:
       tmp_l_sd_data.append(sd_raw_data)
     if do_marble_fit:
-      tmp_l_sd_data = marble(tmp_l_sd_data, i+1)
+      if i == 0:
+        tmp_l_sd_data = marble(tmp_l_sd_data, file_marble_file, i+1, file_calle_file)
+      else:
+        tmp_l_sd_data = marble(tmp_l_sd_data, file_marble_file, i+1, [])
     l_sd_data = l_sd_data + tmp_l_sd_data
   
   my_analysis(l_sd_data, 5)

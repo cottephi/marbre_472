@@ -39,14 +39,15 @@ def gaussfit(df_z, sb):
   sb.plot(npl_x_plot, npa_result)
 
 
-def doublegaussfit(x,proba,par):
+def doublegaussfit(x,proba,par, sb):
   gauss_fit = lambda p, x: p[0]*(1/np.sqrt(2*math.pi*(p[2]**2)))*np.exp(-(x-p[1])**2/(2*p[2]**2))+p[3]*(1/np.sqrt(2*math.pi*(p[5]**2)))*np.exp(-(x-p[4])**2/(2*p[5]**2)) #1d Gaussian func
   e_gauss_fit = lambda p, x, y: (gauss_fit(p,x) -y) #1d Gaussian fit
   out = leastsq(e_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
   xxx = np.arange(min(x),max(x),x[1]-x[0])
   ccc = gauss_fit(par,xxx) # this will only work if the units are pixel and not wavelength
-  fig = plt.figure(0,figsize=(9, 9)) #make a plot
-  ax1 = fig.add_subplot(111)
-  ax1.plot(x,proba,'gs') #spectrum
-  ax1.plot(xxx,ccc,'b-') #fitted spectrum
-  plt.show()
+  sb.plot(xxx,ccc,'r-')
+  #fig = plt.figure(0,figsize=(9, 9)) #make a plot
+  #ax1 = fig.add_subplot(111)
+  #ax1.plot(x,proba,'gs') #spectrum
+  #ax1.plot(xxx,ccc,'b-') #fitted spectrum
+  #plt.show()

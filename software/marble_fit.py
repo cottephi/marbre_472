@@ -3,27 +3,76 @@ from sortedcontainers import SortedDict
 import math
 from sklearn import linear_model
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import pandas
 import scipy
 from toolbox import *
 
-def marble(l_sd_data, ID = 1):
+def marble(l_sd_data, file_marble_file = [], ID = 1, file_calle_file = []):
   l_sd_marble_data = [SortedDict()]
-  l_sd_marble_data[0]=cut(l_sd_data[0],[4])
-  if len(l_sd_data) >1:
+  if len(file_marble_file) != 0:
+    if ID > len(file_marble_file):
+      print("ERROR: should have as many marble measurements than holes measurements")
+    marble_file = open(file_marble_file[ID-1], "r")
+    content_marble_file = marble_file.readlines()
+    marble_file.close()
+    startcut = -900000
+    if "Distance" in content_marble_file[0]:
+      content_marble_file = content_marble_file[1:]
+    for line in content_marble_file:
+      if float(line.split("\n")[0].split(";")[4])<startcut:
+        continue
+      l_sd_marble_data[0][float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
+    #l_sd_marble_data[0]=cut(l_sd_marble_data[0],[4])
+  else:
+    l_sd_marble_data[0]=cut(l_sd_data[0],[4])
+  if len(l_sd_data) >1 and file_marble_file == "":
     l_sd_marble_data.append(SortedDict())
     l_sd_marble_data[1] = cut(l_sd_data[-1],[4])
         
   if len(l_sd_data) >2:
-    l_sd_data = marble_fit(l_sd_marble_data, l_sd_data, ID)
+    l_sd_data, lr_fit = marble_fit(l_sd_marble_data, l_sd_data, ID)
+    if len(file_calle_file) != 0:
+      plot_calle(file_calle_file, lr_fit)
     return l_sd_data
   else:
-    marble_fit(l_sd_marble_data, ID)
+    _,lr_fit = marble_fit(l_sd_marble_data, ID)
+    if len(file_calle_file) != 0:
+      plot_calle(file_calle_file, lr_fit)
+    
+def plot_calle(file_calle_file,lr_fit):
+  i = 0
+  for File in file_calle_file:
+    plot_title = File.replace("../data/calle/calle","")
+    plot_title = plot_title.replace("_","")
+    plot_title = plot_title.replace("1000Hz","")
+    plot_title = plot_title.replace(".csv","")
+    calle_file = open(File, "r")
+    content_calle_file = calle_file.readlines()
+    calle_file.close()
+    if "Distance" in content_calle_file[0]:
+      content_calle_file = content_calle_file[1:]
+    sd_calle_data = [float(float(line.split("\n")[0].split(";")[0])-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))) for line in content_calle_file]
+    #-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))
+    df_z = pandas.DataFrame({'z':sd_calle_data})
+    fig = plt.figure(5,figsize=(12, 12))
+    sb = fig.add_subplot(111)
+    i_count, _, _ = sb.hist(df_z['z'], bins='auto')
+    statbox = FormStatBox(df_z['z'])
+    sb.text(df_z['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
+    sb.set_xlabel("Height micrimeter)")
+    sb.set_ylabel("Count")
+    sb.xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
+    sb.set_title("Height of " + plot_title + " reference")
+    plt.savefig("calle_" + str(plot_title) + ".pdf")
+    plt.clf()
+    i = i + 1
 
 
 def marble_fit(l_sd_marble_data, l_sd_data = None, ID = 1):
   sd_marble = l_sd_marble_data[0].copy()
-  sd_marble.update(l_sd_marble_data[1])
+  if len(l_sd_marble_data) == 2:
+    sd_marble.update(l_sd_marble_data[1])
   l_marble_x, l_marble_z = zip(*(sd_marble.items()))
   npa_marble_x = np.array(l_marble_x)
   npa_marble_z = np.array(l_marble_z)
@@ -39,7 +88,7 @@ def marble_fit(l_sd_marble_data, l_sd_data = None, ID = 1):
     l_sd_data = l_sd_corrected_data
   
   plot_fit([npa_marble_x, npa_marble_z,l_sd_marble_data], lr_fit, ID)
-  return l_sd_data
+  return [l_sd_data, lr_fit]
 
 
 def plot_fit(l_marble_xzdata, lr_fit, ID = 1):
