@@ -23,7 +23,10 @@ def cut(sd_z, myrange):
   return sd_cut_z
   
 def FormStatBox(df_z_selected):
-  return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),2)) + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),2))
+  return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),0)) + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),2))
+  
+def FormFitBox(param):
+  return 'Fit result:\n First gaussian:\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(round(Decimal(param[2]),2)) + '\n Second gaussian:\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(round(Decimal(param[5]),2)) 
   
 def gaussfit(df_z, sb):
   l_fit_range = []
@@ -44,8 +47,9 @@ def doublegaussfit(x,proba,par, sb):
   e_gauss_fit = lambda p, x, y: (gauss_fit(p,x) -y) #1d Gaussian fit
   out = leastsq(e_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
   xxx = np.arange(min(x),max(x),x[1]-x[0])
-  ccc = gauss_fit(par,xxx) # this will only work if the units are pixel and not wavelength
+  ccc = gauss_fit(out[0],xxx) # this will only work if the units are pixel and not wavelength
   sb.plot(xxx,ccc,'r-')
+  return out[0]
   #fig = plt.figure(0,figsize=(9, 9)) #make a plot
   #ax1 = fig.add_subplot(111)
   #ax1.plot(x,proba,'gs') #spectrum

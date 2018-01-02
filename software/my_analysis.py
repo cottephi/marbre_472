@@ -60,11 +60,13 @@ def plot_data(l_sd_data, row = 1):
     sb[1][i].set_xlabel('z(micrometer)', fontsize=14)
     i_count_sup, binned_z , _ = sb[1][i].hist(df_z_sup['z'], bins='auto', range = [plot_range_sup[0],plot_range_sup[1]])#, color = 'C0')
     binned_z = binned_z[:-1]
-    fit_par = [len(l_sd_data[i])/2,1050,math.sqrt(float(df_z_sup.var()))/2,len(l_sd_data[i])/2,1100,math.sqrt(float(df_z_sup.var()))/2]
-    doublegaussfit(binned_z, i_count_sup, fit_par, sb[1][i])
+    fit_par = [len(l_sd_data[i])/2,1040.,math.sqrt(float(df_z_sup.var()))/2,len(l_sd_data[i])/2,1100.,math.sqrt(float(df_z_sup.var()))/2]
+    gaussians_params = doublegaussfit(binned_z, i_count_sup, fit_par, sb[1][i])
     #gaussfit(df_z_sup['z'], sb[1][i])
     statbox = FormStatBox(df_z_sup['z'])
-    sb[1][i].text(plot_range_sup[0], 0.9*i_count_sup.max(), statbox,horizontalalignment='left')
+    fitbox = FormFitBox(gaussians_params)
+    #sb[1][i].text(plot_range_sup[0], 0.9*i_count_sup.max(), statbox,horizontalalignment='left')
+    sb[1][i].text(plot_range_sup[1]*0.83, 0.75*i_count_sup.max(), fitbox,horizontalalignment='left', color = 'r')
     fig.add_subplot(sb[1][i])
     l_sd_all_data[k-1].update(l_sd_data[i])
   plt.savefig("holes_histo.pdf")
