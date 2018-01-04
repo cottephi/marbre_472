@@ -23,7 +23,7 @@ def marble(l_sd_data, file_marble_file = [], ID = 1, file_calle_file = []):
       if float(line.split("\n")[0].split(";")[4])<startcut:
         continue
       l_sd_marble_data[0][float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
-    #l_sd_marble_data[0]=cut(l_sd_marble_data[0],[4])
+    l_sd_marble_data[0]=cut(l_sd_marble_data[0],[4])
   else:
     l_sd_marble_data[0]=cut(l_sd_data[0],[4])
   if len(l_sd_data) >1 and file_marble_file == "":
@@ -42,31 +42,52 @@ def marble(l_sd_data, file_marble_file = [], ID = 1, file_calle_file = []):
     
 def plot_calle(file_calle_file,lr_fit):
   i = 0
-  for File in file_calle_file:
-    plot_title = File.replace("../data/calle/calle","")
-    plot_title = plot_title.replace("_","")
-    plot_title = plot_title.replace("1000Hz","")
-    plot_title = plot_title.replace(".csv","")
-    calle_file = open(File, "r")
+  sb_plot_calle = []
+  marble_ref = []
+  l_calle_data = []
+  is_marble_ref = False
+  if "marbre" in file_calle_file[0]:
+    is_marble_ref = True
+    calle_file = open(file_calle_file[0], "r")
     content_calle_file = calle_file.readlines()
     calle_file.close()
     if "Distance" in content_calle_file[0]:
       content_calle_file = content_calle_file[1:]
-    sd_calle_data = [float(float(line.split("\n")[0].split(";")[0])-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))) for line in content_calle_file]
-    #-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))
-    df_z = pandas.DataFrame({'z':sd_calle_data})
-    fig = plt.figure(5,figsize=(12, 12))
-    sb = fig.add_subplot(111)
-    i_count, _, _ = sb.hist(df_z['z'], bins='auto')
+    marble_ref = np.array([float(line.split("\n")[0].split(";")[0]) for line in content_calle_file])
+  for i in range(0,len(file_calle_file)):
+    if is_marble_ref and i == 0:
+      plot_title = "marble_ref"
+      l_calle_data = marble_ref
+    else:
+      plot_title = file_calle_file[i].replace("1000Hz","")
+      plot_title = remove_letters(plot_title)
+      plot_title = plot_title.replace("..","")
+      plot_title = plot_title.replace("2017","")
+      plot_title = plot_title.replace("2018","")
+      plot_title = plot_title.replace("/","")
+      plot_title = plot_title.replace("_","")
+      plot_title = plot_title.replace(".csv","")
+      calle_file = open(file_calle_file[i], "r")
+      content_calle_file = calle_file.readlines()
+      calle_file.close()
+      if "Distance" in content_calle_file[0]:
+        content_calle_file = content_calle_file[1:]
+      if is_marble_ref:
+        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_calle_file]
+      else:
+        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))) for line in content_calle_file]
+      #-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))
+    df_z = pandas.DataFrame({'z':l_calle_data})
+    fig = plt.figure(100+i,figsize=(12, 12))
+    sb_plot_calle.append(fig.add_subplot(111))
+    i_count, _, _ = sb_plot_calle[-1].hist(df_z['z'], bins='auto')
     statbox = FormStatBox(df_z['z'])
-    sb.text(df_z['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
-    sb.set_xlabel("Height micrimeter)")
-    sb.set_ylabel("Count")
-    sb.xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
-    sb.set_title("Height of " + plot_title + " reference")
-    plt.savefig("calle_" + str(plot_title) + ".pdf")
-    plt.clf()
-    i = i + 1
+    sb_plot_calle[-1].text(df_z['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
+    sb_plot_calle[-1].set_xlabel("Height (micrometer)")
+    sb_plot_calle[-1].set_ylabel("Count")
+    sb_plot_calle[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
+    sb_plot_calle[-1].set_title("Height of " + plot_title + " reference")
+    fig.savefig("calle_" + str(plot_title) + ".pdf")
 
 
 def marble_fit(l_sd_marble_data, l_sd_data = None, ID = 1):
@@ -96,16 +117,17 @@ def plot_fit(l_marble_xzdata, lr_fit, ID = 1):
   npa_z = l_marble_xzdata[1]
   npl_x_test = np.linspace(np.min(npa_x), np.max(npa_x), 100)
   df_z = [pandas.DataFrame({'z':list(l_marble_xzdata[2][0].values())})]
-  fig = plt.figure(0,figsize=(12, 12))
+  fig = plt.figure(10+ID,figsize=(12, 12))
   #plt.tight_layout()
   sb1 = fig.add_subplot(211)
   sb1.set_title("Marble Height vs length")
   sb1.set_xlabel('x(micrometer)', fontsize=14)
   sb1.set_ylabel('z(micrometer)', fontsize=12)
   sb1.scatter(npa_x, npa_z, color='black')
+  sb1.axis([min(npa_x)-1., max(npa_x)+1., 0.99*min(npa_z), max(npa_z)*1.01])
   sb1.plot(npl_x_test, lr_fit.predict(npl_x_test[:,np.newaxis]), color='blue', linewidth=3)
   line_equation = 'z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2))
-  plt.text((npa_x.max()-npa_x.min())/2,npa_z.max()-(npa_z.max()-npa_z.min())/4,line_equation,horizontalalignment='center')
+  plt.text(3*(npa_x.max()-npa_x.min())/4,1.005*npa_z.max(),line_equation,horizontalalignment='center', color='r')
   if len(l_marble_xzdata[2]) == 2:
     df_z.append(pandas.DataFrame({'z':list(l_marble_xzdata[2][1].values())}))
     sb2 = fig.add_subplot(223)
@@ -132,6 +154,4 @@ def plot_fit(l_marble_xzdata, lr_fit, ID = 1):
   else:
     print("marble_fit::plot_fit ERROR : wrong size for marble z data")
     exit(1)
-  plt.savefig("marble_" + str(ID) + ".pdf",bbox_inches = "tight")
-  plt.clf()
-  #plt.show()
+  fig.savefig("marble_" + str(ID) + ".pdf",bbox_inches = "tight")

@@ -8,8 +8,10 @@ import os
 import getopt
 from marble_fit import marble
 from sortedcontainers import SortedDict
+import matplotlib.pyplot as plt
 
 from my_analysis import my_analysis
+from my_analysis import plot_holes
 
 def usage():
   print("Usage is:")
@@ -46,17 +48,22 @@ def load_cuts(my_cut_file):
         exit(1)
     elif cut.split(" ")[0] == "CALLE":
       if glob(cut.split(" ")[1]):
-        file_calle_file = sorted(glob(cut.split(" ")[1]))
+        marble_ref = cut.split(" ")[1].replace("calle*","marbre_1000Hz.csv")
+        if os.path.isfile(marble_ref):
+          file_calle_file.append(marble_ref)
+        file_calle_file = file_calle_file + sorted(glob(cut.split(" ")[1]))
       else:
         print("ERROR : could not find calle file")
         exit(1)
+    elif cut[0] == "#":
+      continue
     else:
-      print("2 load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
+      print("Load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut), or by MARBLE or CALLE.")
       exit(1)
   return [[cutx,cutz], file_marble_file, file_calle_file]
       
       
-def apply_cuts(rawdata, cuts):
+def apply_cuts(rawdata, cuts, ID = 0):
   cutdata = []
   cutdata.append(SortedDict())
   new_set = False
@@ -64,6 +71,7 @@ def apply_cuts(rawdata, cuts):
   file_marble_file = cuts[1]
   file_calle_file = cuts[2]
   cuts = cuts[0]
+  i = 0
   for x in rawdata:    #loop over data
     for cut in cuts[0]:    #for each x-z, loop over the x-cuts to see if the x-z pair must be ignored 
       if cut[0] == cut[1] and float(x) == float(cut[0]):    #if the cut is a single point and not a range and x or y matches a single cut, ignore the value but does not create a new data set
@@ -158,7 +166,7 @@ def main(argv):
     exit(0)
   if opt_cut_file:
     if not os.path.isfile(cut_file_arg):
-      print("ERROR: cut file " + data_arg + " not found.")
+      print("ERROR: cut file " + cut_file_arg + " not found.")
       exit(0)
 
   l_data = []
@@ -166,8 +174,10 @@ def main(argv):
     l_data.append(data_arg)
   elif os.path.isdir(data_arg):
     l_data = sorted(glob(data_arg + '/*merged*'))
-
+  row = len(l_data)
   l_sd_data = []
+  l_sd_raw_data = []
+  
   for i in range(0,len(l_data)):
     tmp_l_sd_data = []
     data = open(l_data[i], "r")
@@ -181,7 +191,7 @@ def main(argv):
       x = float(line.split("\n")[0].split(";")[4])
       x_tmp = x
       z = float(line.split("\n")[0].split(";")[0])
-      while x_tmp in sd_raw_data:
+      while x_tmp in sd_raw_data: #evite d'avoir deux fois la meme valeur de x, ce qui ne fonctionne pas pour les dictionnaires
         x_tmp = x_tmp+0.01
         if x_tmp > x + 1:
           conti = True
@@ -189,9 +199,12 @@ def main(argv):
       if conti:
         continue
       sd_raw_data[x_tmp] = z
-
+    #if i == 1:
+      #for x in sd_raw_data.keys():
+        #print(x)
+    l_sd_raw_data.append(sd_raw_data)
     if opt_cut_file:
-      tmp_l_sd_data,file_marble_file, file_calle_file = apply_cuts(sd_raw_data, load_cuts(cut_file_arg))
+      tmp_l_sd_data,file_marble_file, file_calle_file = apply_cuts(sd_raw_data, load_cuts(cut_file_arg), i)
     else:
       tmp_l_sd_data.append(sd_raw_data)
     if do_marble_fit:
@@ -200,8 +213,11 @@ def main(argv):
       else:
         tmp_l_sd_data = marble(tmp_l_sd_data, file_marble_file, i+1, [])
     l_sd_data = l_sd_data + tmp_l_sd_data
+  plot_holes(l_sd_raw_data, 5, "raw_")
+  my_analysis(l_sd_data, row)
   
-  my_analysis(l_sd_data, 5)
+  #plt.show()
+  #plt.clf()
   
 if __name__ == '__main__':
   if len(sys.argv) == 1:
