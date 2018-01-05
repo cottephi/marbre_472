@@ -79,7 +79,7 @@ def find_local_max(counts, values, binsize):
   counts2[posmax[0]] = 0
   attempt = 0
   
-  while len(Max) <= 3 and attempt < len(counts):
+  while len(Max) < 4 and attempt < len(counts):
     attempt = attempt + 1
     rec = True
     posmax.append([i for i,x in enumerate(counts2) if x == counts2.max()][0])
@@ -87,13 +87,14 @@ def find_local_max(counts, values, binsize):
       counts2[posmax[-1]] = 0
       continue
     for i in range(0,len(posmax)-1):
-      if (posmax[-1] <= posmax[i]+int(5/binsize) and posmax[-1] >= posmax[i]-int(15/binsize)) or counts[posmax[-1]+1] == 0 or counts[posmax[-1]-1] == 0:
+      if (posmax[-1] <= posmax[i]+int(25/binsize) and posmax[-1] >= posmax[i]-int(25/binsize)) or counts[posmax[-1]+1] == 0 or counts[posmax[-1]-1] == 0:
         counts2[posmax[-1]] = 0
         rec = False
         break
     if rec:
       Max.append(values[posmax[-1]])
       counts2[posmax[-1]] = 0
+  print(Max)
   return Max
   
 def remove_letters(r):
@@ -109,12 +110,33 @@ def good_marker_size(x,y,fig,sb):
   # retrieve the pixel information:
   xy_pixels = sb.transData.transform(np.vstack([x,y]).T)
   xpix, ypix = xy_pixels.T
-
   # In matplotlib, 0,0 is the lower left corner, whereas it's usually the upper 
   # right for most image software, so we'll flip the y-coords
   width, height = fig.canvas.get_width_height()
   ypix = height - ypix
 
   # this assumes that your data-points are equally spaced
-  s1 = xpix[1]-xpix[0]
-  return s1
+  s1 = xpix
+  s2 = ypix
+  if len(xpix) > 1:
+    s1 = xpix[1]-xpix[0]
+  if len(ypix) > 1:
+    y2 = ypix[0]
+    test = 1
+    while y2 == ypix[0] and test < len(ypix):
+      y2 = ypix[test]
+      test = test + 1
+    s2 = y2-ypix[0]
+  return [s1,s2]
+  
+def GetNcolNrow(l_sd_data):
+  if int(math.sqrt(len(l_sd_data))) == math.sqrt(len(l_sd_data)):
+    int_nrow = int(math.sqrt(len(l_sd_data)))
+    int_ncol = int(math.sqrt(len(l_sd_data)))
+  elif int(len(l_sd_data)/int(math.sqrt(len(l_sd_data)))) == len(l_sd_data)/int(math.sqrt(len(l_sd_data))):
+    int_nrow = int(math.sqrt(len(l_sd_data)))
+    int_ncol = int(len(l_sd_data)/int_nrow)
+  else:
+    int_nrow = int(math.sqrt(len(l_sd_data)))
+    int_ncol = int(math.sqrt(len(l_sd_data))) + 1
+  return int_nrow, int_ncol

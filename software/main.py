@@ -29,8 +29,8 @@ def load_cuts(my_cut_file):
   cutfile.close()
   cutx = []
   cutz = []
-  file_marble_file = []
-  file_calle_file = []
+  l_marble_file = []
+  l_calle_file = []
   for cut in cuts:
     cut = cut.split("\n")[0]
     if len(cut.split(" ")) != 3 and cut.split(" ")[0] != "MARBLE" and cut.split(" ")[0] != "CALLE":
@@ -42,7 +42,7 @@ def load_cuts(my_cut_file):
       cutz.append([cut.split(" ")[1],cut.split(" ")[2]])
     elif cut.split(" ")[0] == "MARBLE":
       if glob(cut.split(" ")[1]):
-        file_marble_file = sorted(glob(cut.split(" ")[1]))
+        l_marble_file = sorted(glob(cut.split(" ")[1]))
       else:
         print("ERROR : could not find Marble reference file")
         exit(1)
@@ -50,8 +50,8 @@ def load_cuts(my_cut_file):
       if glob(cut.split(" ")[1]):
         marble_ref = cut.split(" ")[1].replace("calle*","marbre_1000Hz.csv")
         if os.path.isfile(marble_ref):
-          file_calle_file.append(marble_ref)
-        file_calle_file = file_calle_file + sorted(glob(cut.split(" ")[1]))
+          l_calle_file.append(marble_ref)
+        l_calle_file = l_calle_file + sorted(glob(cut.split(" ")[1]))
       else:
         print("ERROR : could not find calle file")
         exit(1)
@@ -60,7 +60,7 @@ def load_cuts(my_cut_file):
     else:
       print("Load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut), or by MARBLE or CALLE.")
       exit(1)
-  return [[cutx,cutz], file_marble_file, file_calle_file]
+  return [[cutx,cutz], l_marble_file, l_calle_file]
       
       
 def apply_cuts(rawdata, cuts, ID = 0):
@@ -68,8 +68,8 @@ def apply_cuts(rawdata, cuts, ID = 0):
   cutdata.append(SortedDict())
   new_set = False
   ignore = False
-  file_marble_file = cuts[1]
-  file_calle_file = cuts[2]
+  l_marble_file = cuts[1]
+  l_calle_file = cuts[2]
   cuts = cuts[0]
   i = 0
   for x in rawdata:    #loop over data
@@ -123,24 +123,29 @@ def apply_cuts(rawdata, cuts, ID = 0):
       cutdata[-1][x] = rawdata[x]
       new_set = False
       
-  return [cutdata,file_marble_file, file_calle_file]
+  return [cutdata,l_marble_file, l_calle_file]
   
 def main(argv):
 
-  #Booleans to ID the arguments
+  #Booleans to ID the arguments p
   opt_cut_file = False
   cut_file_arg = ""
   opt_data = False
   data_arg = ""
+  opt_marble_fit_file = False
+  marble_fit_file_arg = ""
   
   #Doit etre Vrai si des mesures du marbres ont ete prises avant ET apres la mesure, ou si que le marbre a ete mesure.
+  #Set to True if you want to fit the marble
   do_marble_fit = True
-  file_marble_file = []
-  file_calle_file = []
+  #Set to true if your first and last groups of measurements are marble that are not cut out of the data by the cut you chose
+  edges_are_marble = True
+  l_marble_file = []
+  l_calle_file = []
   
   #Read the arguments
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hi:c:", [])
+    opts, args = getopt.getopt(sys.argv[1:], "hi:c:m:", [])
   except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -155,6 +160,9 @@ def main(argv):
     elif opt == "-i":
       opt_data = True
       data_arg = arg
+    elif opt == "-m":
+      opt_marble_fit_file = True
+      marble_fit_file_arg = arg
     else:
       print("Unrecognized arguments")
       usage()
@@ -168,6 +176,11 @@ def main(argv):
     if not os.path.isfile(cut_file_arg):
       print("ERROR: cut file " + cut_file_arg + " not found.")
       exit(0)
+  if opt_marble_fit_file:
+    if not os.path.isfile(marble_fit_file_arg):
+      print("ERROR: marble fit file " + marble_fit_file_arg + " not found.")
+      exit(0)
+      
 
   l_data = []
   if os.path.isfile(data_arg):
@@ -177,6 +190,7 @@ def main(argv):
   row = len(l_data)
   l_sd_data = []
   l_sd_raw_data = []
+  col = 0
   
   for i in range(0,len(l_data)):
     tmp_l_sd_data = []
@@ -199,22 +213,23 @@ def main(argv):
       if conti:
         continue
       sd_raw_data[x_tmp] = z
-    #if i == 1:
-      #for x in sd_raw_data.keys():
-        #print(x)
     l_sd_raw_data.append(sd_raw_data)
     if opt_cut_file:
-      tmp_l_sd_data,file_marble_file, file_calle_file = apply_cuts(sd_raw_data, load_cuts(cut_file_arg), i)
+      tmp_l_sd_data,l_marble_file, l_calle_file = apply_cuts(sd_raw_data, load_cuts(cut_file_arg), i)
     else:
       tmp_l_sd_data.append(sd_raw_data)
-    if do_marble_fit:
+    if opt_marble_fit_file:
+      l_marble_file = [marble_fit_file_arg]
+    if do_marble_fit and opt_cut_file:
       if i == 0:
-        tmp_l_sd_data = marble(tmp_l_sd_data, file_marble_file, i+1, file_calle_file)
+        tmp_l_sd_data = marble(tmp_l_sd_data, l_marble_file, i+1, l_calle_file, edges_are_marble)
       else:
-        tmp_l_sd_data = marble(tmp_l_sd_data, file_marble_file, i+1, [])
+        tmp_l_sd_data = marble(tmp_l_sd_data, l_marble_file, i+1, [], edges_are_marble)
     l_sd_data = l_sd_data + tmp_l_sd_data
-  plot_holes(l_sd_raw_data, 5, "raw_")
-  my_analysis(l_sd_data, row)
+    if i == 0:
+      col = len(l_sd_data)
+  plot_holes(l_sd_raw_data, row, col, "raw_")
+  my_analysis(l_sd_data, row, col)
   
   #plt.show()
   #plt.clf()
