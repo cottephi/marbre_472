@@ -8,27 +8,49 @@ import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 import re
 
-def cut(sd_z, myrange):
-  if len(sd_z) == 0:
-    return sd_z
-  sd_cut_z = SortedDict()
-  _,l_z=zip(*(sd_z.items()))
-  if len(myrange) == 1:
-    for x in sd_z:
-      if not abs(np.mean(l_z)-sd_z[x]) > myrange[0]*math.sqrt(np.var(l_z)):
-        sd_cut_z[x] = sd_z[x]
-  elif len(myrange) == 2:
-    for x in sd_z:
-      if sd_z[x] < myrange[1] and sd_z[x] > myrange[0]:
-        sd_cut_z[x] = sd_z[x]
-  else:
-    sd_cut_z = sd_z
-  return sd_cut_z
+def cut(xz, myrange):
+
+  if type(xz) is pandas.DataFrame:
+    if len(xz) == 0:
+      return xz
+    cut_xz = pandas.DataFrame(columns=list(xz))
+    if len(myrange) == 1:
+      for i in range(0,len(xz)):
+        if not abs(xz['z'].mean()-xz.loc[i,'z']) > myrange[0]*math.sqrt(xz['z'].var()):
+          cut_xz.loc[len(cut_xz)] = xz.loc[i]
+    elif len(myrange) == 2:
+      for i in range(0,len(xz)):
+        if xz.loc[i,'z'] < myrange[1] and xz.loc[i,'z'] > myrange[0]:
+          cut_xz.loc[len(cut_xz)] = xz.loc[i]
+    else:
+      cut_xz = xz
+    return cut_xz
+  
+  elif type(xz) is list:
+    if len(xz) == 0:
+      return xz
+    cut_xz = [[],[]]
+    if len(myrange) == 1:
+      np_xz = np.array(xz[1])
+      for i in range(0,len(xz[0])):
+        if not abs(np_xz.mean()-xz[1][i]) > myrange[0]*math.sqrt(np_xz.var()):
+          cut_xz[1].append(xz[1][i])
+          cut_xz[0].append(xz[0][i])
+    elif len(myrange) == 2:
+      for i in range(0,len(xz[0])):
+        if xz[1][i] < myrange[1] and xz[1][i] > myrange[0]:
+          cut_xz[1].append(xz[1][i])
+          cut_xz[0].append(xz[0][i])
+    else:
+      cut_xz = xz
+    return cut_xz
   
 def FormStatBox(df_z_selected):
   return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),0)) + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),2))
   
 def FormFitBox(param, df_z_selected):
+  if len(param) == 0:
+    return 'fit failed'
   return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n Second gaussian:\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2))) 
   
 def gaussfit(df_z, sb):
@@ -61,6 +83,7 @@ def e_gauss_fit(p, x, y):
   
 def doublegaussfit(x,proba,par, sb, range_p = []):
   out = []
+  print("    Fit attempt around possible means ",par[1]," and ",par[4],"...")
   if range_p == []:
     p,cov,infodict,mesg,ier = leastsq(e_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
   else:
@@ -70,31 +93,33 @@ def doublegaussfit(x,proba,par, sb, range_p = []):
   ss_err = (infodict['fvec']**2).sum()
   ss_tot = ((proba-proba.mean())**2).sum()
   rsquare = 1-(ss_err/ss_tot)
+  print("     Means found : ",p[1]," and ",p[4],", R**2=",rsquare)
   return p,rsquare, [xxx,ccc]
   
 def find_local_max(counts, values, binsize):
   posmax = [i for i,x in enumerate(counts) if x == counts.max()]
   Max = [values[posmax[0]]]
   counts2 = counts.copy()
-  counts2[posmax[0]] = 0
+  counts2 = np.array([ z if i < posmax[0]-int(25/binsize) or i > posmax[0]+int(25/binsize) else 0 for i,z in enumerate(counts2)])
   attempt = 0
   
   while len(Max) < 4 and attempt < len(counts):
     attempt = attempt + 1
     rec = True
-    posmax.append([i for i,x in enumerate(counts2) if x == counts2.max()][0])
-    if posmax[-1] == 0 or posmax[-1] == len(counts2)-1:
-      counts2[posmax[-1]] = 0
+    tmp_posmax = [i for i,x in enumerate(counts2) if x == counts2.max()][0]
+    if tmp_posmax == 0 or tmp_posmax == len(counts2)-1:
+      counts2[tmp_posmax] = 0
       continue
-    for i in range(0,len(posmax)-1):
-      if (posmax[-1] <= posmax[i]+int(25/binsize) and posmax[-1] >= posmax[i]-int(25/binsize)) or counts[posmax[-1]+1] == 0 or counts[posmax[-1]-1] == 0:
-        counts2[posmax[-1]] = 0
+    for i in range(0,len(posmax)):
+      if (tmp_posmax <= posmax[i]+int(30/binsize) and tmp_posmax >= posmax[i]-int(30/binsize)) or counts[tmp_posmax+1] == 0 or counts[tmp_posmax-1] == 0:
+        counts2[tmp_posmax] = 0
         rec = False
         break
     if rec:
-      Max.append(values[posmax[-1]])
-      counts2[posmax[-1]] = 0
-  print(Max)
+      Max.append(values[tmp_posmax])
+      posmax.append(tmp_posmax)
+      counts2 = np.array([ z if i < tmp_posmax-int(30/binsize) or i > tmp_posmax+int(30/binsize) else 0 for i,z in enumerate(counts2)])
+  print("   Local max found : ",Max)
   return Max
   
 def remove_letters(r):
@@ -126,17 +151,20 @@ def good_marker_size(x,y,fig,sb):
     while y2 == ypix[0] and test < len(ypix):
       y2 = ypix[test]
       test = test + 1
-    s2 = y2-ypix[0]
+    if y2 == ypix[0]:
+      s2 = y2
+    else:
+      s2 = y2-ypix[0]
   return [s1,s2]
   
-def GetNcolNrow(l_sd_data):
-  if int(math.sqrt(len(l_sd_data))) == math.sqrt(len(l_sd_data)):
-    int_nrow = int(math.sqrt(len(l_sd_data)))
-    int_ncol = int(math.sqrt(len(l_sd_data)))
-  elif int(len(l_sd_data)/int(math.sqrt(len(l_sd_data)))) == len(l_sd_data)/int(math.sqrt(len(l_sd_data))):
-    int_nrow = int(math.sqrt(len(l_sd_data)))
-    int_ncol = int(len(l_sd_data)/int_nrow)
+def GetNcolNrow(l_df_data):
+  if int(math.sqrt(len(l_df_data))) == math.sqrt(len(l_df_data)):
+    int_nrow = int(math.sqrt(len(l_df_data)))
+    int_ncol = int(math.sqrt(len(l_df_data)))
+  elif int(len(l_df_data)/int(math.sqrt(len(l_df_data)))) == len(l_df_data)/int(math.sqrt(len(l_df_data))):
+    int_nrow = int(math.sqrt(len(l_df_data)))
+    int_ncol = int(len(l_df_data)/int_nrow)
   else:
-    int_nrow = int(math.sqrt(len(l_sd_data)))
-    int_ncol = int(math.sqrt(len(l_sd_data))) + 1
+    int_nrow = int(math.sqrt(len(l_df_data)))
+    int_ncol = int(math.sqrt(len(l_df_data))) + 1
   return int_nrow, int_ncol

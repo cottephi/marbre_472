@@ -8,42 +8,36 @@ import pandas
 import scipy
 from toolbox import *
 
-def marble(l_sd_data, file_marble_file = [], ID = 1, file_calle_file = [], edges_are_marble = True):
-  l_sd_marble_data = [SortedDict()]
-  if len(file_marble_file) != 0: #if at least one file was sepecified by the user, load it
-    if ID > len(file_marble_file):
-      print("ERROR: should have as many marble measurements than holes measurements")
-    #the rows of the real data and the rows of the marble data should correspond
-    marble_file = open(file_marble_file[ID-1], "r")
-    content_marble_file = marble_file.readlines()
-    marble_file.close()
-    #beginning of measurment usually is crap
-    startcut = -900000
-    #remove header line
-    if "Distance" in content_marble_file[0]:
-      content_marble_file = content_marble_file[1:]
-    #read the file
-    for line in content_marble_file:
-      if float(line.split("\n")[0].split(";")[4])<startcut:
-        continue
-      #note that sorted dict can not have twice the same key (here, the x coordinate). A workaround has been put in place for the real data (see main.py), but not here.
-      l_sd_marble_data[0][float(line.split("\n")[0].split(";")[4])]=float(line.split("\n")[0].split(";")[0])
-    #remove the marble data too far from the mean
-    l_sd_marble_data[0]=cut(l_sd_marble_data[0],[4])
-  elif len(l_sd_data) >1 and edges_are_marble:#if no marble file is specified, assume the first and last group of real data are actually marble (unless otherwise specified)
-    l_sd_marble_data.append(SortedDict())
-    l_sd_marble_data[0]=cut(l_sd_data[0],[4]) #load the first and last group of data, and cut them at 4sigmas
-    l_sd_marble_data[1] = cut(l_sd_data[-1],[4])
-        
-  if len(l_sd_data) >2 or not edges_are_marble:#if the data are not only marble, correct them with the marble and plot the marble and calle. Otherwise, only plot the marble and calle
-    l_sd_data, lr_fit = marble_fit(l_sd_marble_data, l_sd_data, ID, edges_are_marble)
-    if len(file_calle_file) != 0:
-      plot_calle(file_calle_file, lr_fit)
-    return l_sd_data
-  else:
-    _,lr_fit = marble_fit(l_sd_marble_data, None, ID, edges_are_marble)
-    if len(file_calle_file) != 0:
-      plot_calle(file_calle_file, lr_fit)
+def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
+  l_marble_data = [[],[]]
+  if ID > len(file_marble_file):
+    print("ERROR: should have as many marble measurements than holes measurements")
+  print("  Opening marble file " + file_marble_file[ID-1] + "...")
+  #the rows of the real data and the rows of the marble data should correspond
+  marble_file = open(file_marble_file[ID-1], "r")
+  content_marble_file = marble_file.readlines()
+  marble_file.close()
+  #beginning of measurment usually is crap
+  startcut = -900000
+  #remove header line
+  if "Distance" in content_marble_file[0]:
+    content_marble_file = content_marble_file[1:]
+  #read the file
+  for line in content_marble_file:
+    if float(line.split("\n")[0].split(";")[4])<startcut:
+      continue
+    #note that sorted dict can not have twice the same key (here, the x coordinate). A workaround has been put in place for the real data (see main.py), but not here.
+    l_marble_data[0].append(float(line.split("\n")[0].split(";")[4]))
+    l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
+  #remove the marble data too far from the mean
+
+  l_marble_data = cut(l_marble_data,[4])
+  
+  l_l_cut_data, lr_fit = marble_fit(l_marble_data, l_l_cut_data, ID)
+  if len(file_calle_file) != 0:
+    print("  Plotting calle data...")
+    plot_calle(file_calle_file, lr_fit)
+  return l_l_cut_data
     
 def plot_calle(file_calle_file,lr_fit):
   i = 0
@@ -72,6 +66,7 @@ def plot_calle(file_calle_file,lr_fit):
       plot_title = plot_title.replace("/","")
       plot_title = plot_title.replace("_","")
       plot_title = plot_title.replace(".csv","")
+      print("   Opening calle file " + file_calle_file[i] + "...")
       calle_file = open(file_calle_file[i], "r")
       content_calle_file = calle_file.readlines()
       calle_file.close()
@@ -93,42 +88,32 @@ def plot_calle(file_calle_file,lr_fit):
     sb_plot_calle[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_calle[-1].set_title("Height of " + plot_title + " reference")
     fig.savefig("calle_" + str(plot_title) + ".pdf")
+    print("   ...plot saved in calle_" + str(plot_title) + ".pdf")
 
 
-def marble_fit(l_sd_marble_data, l_sd_data = None, ID = 1, edges_are_marble = True):
-  sd_marble = l_sd_marble_data[0].copy()
-  if len(l_sd_marble_data) == 2:
-    sd_marble.update(l_sd_marble_data[1])
-  l_marble_x, l_marble_z = zip(*(sd_marble.items()))
-  npa_marble_x = np.array(l_marble_x)
-  npa_marble_z = np.array(l_marble_z)
+def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1):
+  npa_marble_x = np.array(l_marble_data[0])
+  npa_marble_z = np.array(l_marble_data[1])
   lr_fit = linear_model.LinearRegression()
+  print("   Computing marble slope...")
   lr_fit.fit(npa_marble_x[:,np.newaxis], npa_marble_z)
-  if not l_sd_data is None:
-    l_sd_corrected_data = [SortedDict()]
-    if edges_are_marble:
-      for sd_data in l_sd_data[1:-1]:
-        for float_x in sd_data:
-          l_sd_corrected_data[-1][float_x] = sd_data[float_x]-lr_fit.predict(sd_data[float_x])[0]
-        l_sd_corrected_data.append(SortedDict())
-    else:
-      for sd_data in l_sd_data:
-        for float_x in sd_data:
-          l_sd_corrected_data[-1][float_x] = sd_data[float_x]-lr_fit.predict(sd_data[float_x])[0]
-        l_sd_corrected_data.append(SortedDict())
-      
-    l_sd_corrected_data = l_sd_corrected_data[:-1]
-    l_sd_data = l_sd_corrected_data
-  
-  plot_fit([npa_marble_x, npa_marble_z,l_sd_marble_data], lr_fit, ID)
-  return [l_sd_data, lr_fit]
+  print('  ...z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2)))
+  l_l_corrected_data = []
+  print("   Applying fit to data...")
+  if not l_l_cut_data is None:
+    for l_cut_data in l_l_cut_data:
+      l_l_corrected_data.append([[],[]])
+      for x,z in zip(l_cut_data[0],l_cut_data[1]):
+        l_l_corrected_data[-1][0].append(x)
+        l_l_corrected_data[-1][1].append((z - lr_fit.predict(x))[0])
+  print("   plotting marble data...")
+  plot_fit(npa_marble_x, npa_marble_z,l_marble_data, lr_fit, ID)
+  return [l_l_corrected_data, lr_fit]
 
 
-def plot_fit(l_marble_xzdata, lr_fit, ID = 1):
-  npa_x = l_marble_xzdata[0]
-  npa_z = l_marble_xzdata[1]
+def plot_fit(npa_x, npa_z, l_xz, lr_fit, ID = 1):
   npl_x_test = np.linspace(np.min(npa_x), np.max(npa_x), 100)
-  df_z = [pandas.DataFrame({'z':list(l_marble_xzdata[2][0].values())})]
+  df_z = pandas.DataFrame({'z':l_xz[1]})
   fig = plt.figure(10+ID,figsize=(12, 12))
   #plt.tight_layout()
   sb1 = fig.add_subplot(211)
@@ -140,30 +125,13 @@ def plot_fit(l_marble_xzdata, lr_fit, ID = 1):
   sb1.plot(npl_x_test, lr_fit.predict(npl_x_test[:,np.newaxis]), color='blue', linewidth=3)
   line_equation = 'z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2))
   plt.text(3*(npa_x.max()-npa_x.min())/4,1.005*npa_z.max(),line_equation,horizontalalignment='center', color='r')
-  if len(l_marble_xzdata[2]) == 2:
-    df_z.append(pandas.DataFrame({'z':list(l_marble_xzdata[2][1].values())}))
-    sb2 = fig.add_subplot(223)
-    sb2.set_xlabel('z(micrometer)', fontsize=14)
-    sb2.set_ylabel('count', fontsize=12)
-    i_count, _ , _ = sb2.hist(df_z[0]['z'], bins='auto')
-    #gaussfit(df_z[0]['z'], sb2)
-    statbox = FormStatBox(df_z[0]['z'])
-    sb2.text(df_z[0]['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
-    sb3 = fig.add_subplot(224)
-    sb3.set_xlabel('z(micrometer)', fontsize=14)
-    sb3.set_ylabel('count', fontsize=12)
-    i_count, _, _ = sb3.hist(df_z[1]['z'], bins='auto')
-    #gaussfit(df_z[1]['z'], sb3)
-    statbox = FormStatBox(df_z[1]['z'])
-    sb3.text(df_z[1]['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
-  elif len(l_marble_xzdata[2]) == 1:
-    sb2 = fig.add_subplot(212)
-    sb2.set_xlabel('z(micrometer)', fontsize=14)
-    sb2.set_ylabel('count', fontsize=12)
-    i_count, _, _ = sb2.hist(df_z[0]['z'], bins='auto')
-    statbox = FormStatBox(df_z[0]['z'])
-    sb2.text(df_z[0]['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
-  else:
-    print("marble_fit::plot_fit ERROR : wrong size for marble z data")
-    exit(1)
+  sb2 = fig.add_subplot(212)
+  sb2.set_xlabel('z(micrometer)', fontsize=14)
+  sb2.set_ylabel('count', fontsize=12)
+  i_count, _, _ = sb2.hist(df_z['z'], bins='auto')
+  statbox = FormStatBox(df_z['z'])
+  sb2.text(df_z['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
   fig.savefig("marble_" + str(ID) + ".pdf",bbox_inches = "tight")
+  print("   ...plot saved in marble_" + str(ID) + ".pdf")
+  
+
