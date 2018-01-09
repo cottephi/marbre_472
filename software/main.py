@@ -7,6 +7,7 @@ import sys
 import os
 import getopt
 from marble_fit import marble
+from marble_fit import plot_other_marble_file
 from sortedcontainers import SortedDict
 import matplotlib.pyplot as plt
 
@@ -26,14 +27,14 @@ def usage():
   
   
 def load_cali(my_cali_file):
-  califile = open(my_cut_file,"r")
-  cali = cutfile.readlines()
+  califile = open(my_cali_file,"r")
+  cali = califile.readlines()
   califile.close()
   l_marble_file = []
   l_calle_file = []
   l_marble_other_file = []
   for cal in cali:
-    cal = cal.split(" ")[0]
+    cal = cal.split("\n")[0]
     if cal[0] == "#":
       continue
     if len(cal.split(" ")) != 2:
@@ -62,7 +63,7 @@ def load_cali(my_cali_file):
         exit(1)
     else:
       print("Load_cali ERROR : bad cali format " + cal + ". ")
-        exit(1)
+      exit(1)
   return[l_marble_file, l_calle_file, l_marble_other_file]
   
 def load_cuts(my_cut_file):
@@ -139,7 +140,7 @@ def sort_data(lines, cut_file_arg, row = 0):
   ################for line in lines:#####################
   if not do_cuts:
     cutdata.append(rawdata)
-  
+  cutdata = [x for x in cutdata if x != []]
   return [cutdata, rawdata]
   
 def main(argv):
@@ -227,12 +228,13 @@ def main(argv):
   for i in range(0,len(l_datafiles)):
     print("Opening datafile ",l_datafiles[i],"...")
     datafiles = open(l_datafiles[i], "r")
+    title = os.path.basename(l_datafiles[i]).replace("merged_","").replace(".csv","")
     lines = datafiles.readlines()
     datafiles.close()
     if "Distance" in lines[0]:
       lines = lines[1:]
     print(" Sorting data...")
-    tmp_l_l_cut_data, tmp_l_raw_data = sort_data(lines, cut_file_arg, cali_file_arg, i)
+    tmp_l_l_cut_data, tmp_l_raw_data = sort_data(lines, cut_file_arg, i)
     print(" ...done")
     l_l_raw_data.append(tmp_l_raw_data)
     if opt_marble_fit_file:
@@ -255,7 +257,7 @@ def main(argv):
       
   print("Data has ",row," rows and ",col," columns")
   print("Plotting raw data...")
-  plot_holes(l_l_raw_data, row, col, "raw_")
+  plot_holes(l_l_raw_data, row, col, "raw_", ["raw " + ti for ti in title])
   if opt_is_test:
     plt.show()
     #plt.clf()
@@ -264,7 +266,7 @@ def main(argv):
   print("...done")
   if opt_separate_in_holes:
     print("Analysing data...")
-    my_analysis(l_l_cutdata, row, col)
+    my_analysis(l_l_cutdata, row, col, title)
     print("done")
   else:
     for l_data in l_l_cutdata:

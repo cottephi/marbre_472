@@ -7,6 +7,7 @@ import matplotlib.ticker as mtick
 import pandas
 import scipy
 import os
+import matplotlib.gridspec as gridspec
 from toolbox import *
 
 def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
@@ -44,6 +45,7 @@ def plot_calle(file_calle_file,lr_fit):
   sb_plot_calle = []
   marble_ref = []
   l_calle_data = []
+  binsize = 5
   is_marble_ref = False
   if "marbre" in file_calle_file[0]:
     is_marble_ref = True
@@ -59,14 +61,6 @@ def plot_calle(file_calle_file,lr_fit):
       l_calle_data = marble_ref
     else:
       plot_title = os.path.basename(file_calle_file[i])
-      #.replace("1000Hz","")
-      #plot_title = remove_letters(plot_title)
-      #plot_title = plot_title.replace("..","")
-      #plot_title = plot_title.replace("2017","")
-      #plot_title = plot_title.replace("2018","")
-      #plot_title = plot_title.replace("/","")
-      #plot_title = plot_title.replace("_","")
-      #plot_title = plot_title.replace(".csv","")
       print("   Opening calle file " + file_calle_file[i] + "...")
       calle_file = open(file_calle_file[i], "r")
       content_calle_file = calle_file.readlines()
@@ -79,14 +73,26 @@ def plot_calle(file_calle_file,lr_fit):
       else:
         l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))) for line in content_calle_file]
       #-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))
+    nbin = int((max(l_calle_data) - min(l_calle_data))/binsize)
+    if nbin < 50:
+      nbin = 'auto'
     df_z = pandas.DataFrame({'z':l_calle_data})
     fig = plt.figure(100+i,figsize=(12, 12))
-    sb_plot_calle.append(fig.add_subplot(111))
-    i_count, binned_z, _ = sb_plot_calle[-1].hist(df_z['z'], bins='auto')
+    sb_plot_calle.append(fig.add_subplot(211))
+    sb_plot_calle[-1].set_xlabel("time (ms)")
+    sb_plot_calle[-1].set_ylabel("z (micrometer)")
+    sb_plot_calle[-1].set_ylim([0.9*min(l_calle_data),1.1*max(l_calle_data)])
+    sb_plot_calle[-1].set_title("z vs time")
+    sb_plot_calle[-1].plot([ [i,x] for i,x in enumerate(l_calle_data)], 'g-')
+    sb_plot_calle.append(fig.add_subplot(212))
+    i_count, binned_z, _ = sb_plot_calle[-1].hist(df_z['z'], bins = nbin)
     binned_z = binned_z[:-1]
     maxz = [l_calle_data[i] for i,c in enumerate(i_count) if c == i_count.max()][0]
     fit_par = [len(df_z), maxz, math.sqrt(float(df_z.var()))]
     gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
+    if len([param for param in gaussians_param if param > 1e20]) != 0:
+      print("   fit failed, parameter too high :'(")
+      gaussians_param = []
     sb_plot_calle[-1].plot(result[0], result[1], 'r-')
     fitbox = FormFitBox(gaussians_param, df_z['z'])
     sb_plot_calle[-1].text(df_z['z'].min(), 0.9*i_count.max(), fitbox, horizontalalignment='left')
@@ -160,10 +166,10 @@ def plot_other_marble_file(other_marble_file):
   sb_plot_marble = []
   fig = plt.figure(1000,figsize=(3*ncol, 3*nrow))
   outer = gridspec.GridSpec(ncol, nrow, wspace=0.2, hspace=0.2)
+  binsize = 5
   for i in range(0,len(other_marble_file)):
     File = other_marble_file[i]
-    inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
-    sb_plot_marble.append(plt.Subplot(fig, inner[0]))
+    inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
     l_marble_data = [[],[]]
     print("  Opening other marble file " + File + "...")
   #the rows of the real data and the rows of the marble data should correspond
@@ -177,19 +183,29 @@ def plot_other_marble_file(other_marble_file):
       content_marble_file = content_marble_file[1:]
     #read the file
     for line in content_marble_file:
-      if float(line.split("\n")[0].split(";")[4])<startcut:
-        continue
+      #if float(line.split("\n")[0].split(";")[4])<startcut:
+        #continue
       l_marble_data[0].append(float(line.split("\n")[0].split(";")[4]))
       l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
-  #remove the marble data too far from the mean
-
     print("   plotting marble data...")
     l_marble_data = cut(l_marble_data,[4])
+  #remove the marble data too far from the mean
+
+    nbin = int((max(l_marble_data[1]) - min(l_marble_data[1]))/binsize)
+    if nbin < 50:
+      nbin = 'auto'
     plot_title = os.path.basename(File)
     df_z = pandas.DataFrame({'z':l_marble_data[1]})
+    sb_plot_marble.append(plt.Subplot(fig, inner[0]))
+    sb_plot_marble[-1].set_xlabel("time (ms)")
+    sb_plot_marble[-1].set_ylabel("z (micrometer)")
+    sb_plot_marble[-1].set_ylim([0.9*min(l_marble_data[1]),1.1*max(l_marble_data[1])])
+    sb_plot_marble[-1].set_title("z vs time")
+    sb_plot_marble[-1].plot([ [i,x] for i,x in enumerate(l_marble_data[1])], 'g-')
+    sb_plot_marble.append(plt.Subplot(fig, inner[1]))
     i_count, binned_z, _ = sb_plot_marble[-1].hist(df_z['z'], bins='auto')
     binned_z = binned_z[:-1]
-    maxz = [l_marble_data[i] for i,c in enumerate(i_count) if c == i_count.max()][0]
+    maxz = [l_marble_data[1][i] for i,c in enumerate(i_count) if c == i_count.max()][0]
     fit_par = [len(df_z), maxz, math.sqrt(float(df_z.var()))]
     gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
     sb_plot_marble[-1].plot(result[0], result[1], 'r-')
@@ -199,7 +215,8 @@ def plot_other_marble_file(other_marble_file):
     sb_plot_marble[-1].set_ylabel("Count")
     sb_plot_marble[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_marble[-1].set_title(plot_title)
-    fig.savefig("other_marble_" + str(plot_title) + ".pdf")
-    plt.close()
-    print("   ...plot saved in other_marble_" + str(plot_title) + ".pdf")
+  fig.show()
+  fig.savefig("other_marble.pdf")
+  plt.close()
+  print("   ...plot saved in other_marble.pdf")
     

@@ -11,7 +11,7 @@ import matplotlib.ticker as tk
 import itertools as it
 from toolbox import *
 
-def my_analysis(l_l_cut_data, row = 1, col = 1):
+def my_analysis(l_l_cut_data, row = 1, col = 1, title = []):
   int_nrow, int_ncol = row, col #GetNcolNrow(l_l_cut_data)
   sb_plot_data = [[],[]]
   fig = plt.figure(1,figsize=(6*col, 6*row))
@@ -23,7 +23,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
   for i in range(0,len(l_l_cut_data)):
     print("   Analysing hole ",i+1,"...")
     skip_inf = True
-    plot_color = 'C0'
+    plot_color = 'b'
     plot_range_sup = [900,1300]
     plot_range_inf = [-50,50]
     underflow = len([z for z in l_l_cut_data[i][1] if z < plot_range_sup[0]])
@@ -58,7 +58,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       sb_plot_data[0][i].set_title('hole ' + str(i+1) + ' Marble', fontsize=14)
       sb_plot_data[0][i].set_xlabel('z(micrometer)', fontsize=14)
       sb_plot_data[0][i].set_ylabel('count', fontsize=12)
-      i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]], color = 'C1')
+      i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]], color = 'b')
       statbox = FormStatBox(df_z_inf['z'])
       sb_plot_data[0][i].text(plot_range_inf[0], 0.9*i_count_inf.max(), statbox,horizontalalignment='left')
       fig.add_subplot(sb_plot_data[0][i])
@@ -137,26 +137,28 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       l_l_all_data[k-1][xz] = l_l_all_data[k-1][xz] + l_l_cut_data[i][xz]
     print("")
   fig.savefig("holes_histo.pdf")
-  plot_holes(l_l_all_data, row, col)
+  plot_holes(l_l_all_data, row, col, title)
   plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col)
 
-def plot_holes(l_l_all_data, row, col, title = ""):
+def plot_holes(l_l_all_data, row, col, name = "", title = []):
   sb_plot_holes = []
   ID = 2
-  if title == "":
+  if len(title) == 0:
+    title = ["row "+str(i+1) for i in range(0,len(l_l_all_data))]
+  if name == "":
     ID = 3
-  fig = plt.figure(ID,figsize=(3*col, 2*row))
+  fig = plt.figure(ID,figsize=(5*col, 4*row))
   grid = gridspec.GridSpec(row, 1, wspace=0.2, hspace=0.5)
   for i in range(0,len(l_l_all_data)):
     sb_plot_holes.append(fig.add_subplot(int(str(row) + '1' + str(i+1))))
     tpl_x = np.array(l_l_all_data[i][0])
     tpl_z = np.array(l_l_all_data[i][1])
     sb_plot_holes[i].scatter(tpl_x, tpl_z, s=1, color='black')
-    sb_plot_holes[i].set_title("Holes of row " + str(i+1))
+    sb_plot_holes[i].set_title(title[i])
     if i == row-1:
       sb_plot_holes[i].set_xlabel('x(micrometer)', fontsize=14)
     sb_plot_holes[i].set_ylabel('z(micrometer)', fontsize=12)
-  fig.savefig(title + "holes.pdf")
+  fig.savefig(name + "holes.pdf")
   
 def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col):
   thick,sigmathick,rim,sigmarim = np.array(thick_sigmathick_rim_sigmarim)
