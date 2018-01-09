@@ -18,71 +18,93 @@ def usage():
   print("Usage is:")
   print("-h : print this message")
   print("-i path/to/file : input data file")
-  print("-c : optional config file, where one can specify x or z cuts")
+  print("-c : cut file, where one can specify x or z cuts")
+  print("-a : cali files (marbles and, possibly, calles)")
+  print("-m : to specify a single marble file to be used as reference")
+  print("-s : to apply the separation from the cut file")
+  print("-t : only plot raw data and cali data. Usefull to quickly check the aspect of the measurements")
   
+  
+def load_cali(my_cali_file):
+  califile = open(my_cut_file,"r")
+  cali = cutfile.readlines()
+  califile.close()
+  l_marble_file = []
+  l_calle_file = []
+  l_marble_other_file = []
+  for cal in cali:
+    cal = cal.split(" ")[0]
+    if cal[0] == "#":
+      continue
+    if len(cal.split(" ")) != 2:
+      print("load_cali ERROR : bad cali format " + cal + ".")
+      exit(1)
+    if cal.split(" ")[0] == "MARBLE":
+      if glob(cal.split(" ")[1]):
+        l_marble_file = sorted(glob(cal.split(" ")[1]))
+        print("   Found marble files :" , l_marble_file)
+      else:
+        print("ERROR : could not find Marble reference files")
+        exit(1)
+    elif cal.split(" ")[0] == "CALLE":
+      if glob(cal.split(" ")[1]):
+        l_calle_file = sorted(glob(cal.split(" ")[1]))
+        print("   Found calle files :", l_calle_file)
+      else:
+        print("ERROR : could not find calle files")
+        exit(1)
+    elif cal.split(" ")[0] == "MARBLE_OTHER":
+      if glob(cal.split(" ")[1]):
+        l_marble_other_file = sorted(glob(cal.split(" ")[1]))
+        print("   Found other marble files :", l_marble_other_file)
+      else:
+        print("ERROR : could not find other marble files")
+        exit(1)
+    else:
+      print("Load_cali ERROR : bad cali format " + cal + ". ")
+        exit(1)
+  return[l_marble_file, l_calle_file, l_marble_other_file]
   
 def load_cuts(my_cut_file):
-  if not os.path.isfile(my_cut_file):
-    print("ERROR: cut file " + my_cut_file + " not found.")
-    exit(1)
   cutfile = open(my_cut_file,"r")
   cuts = cutfile.readlines()
   cutfile.close()
   cutx = []
   cutz = []
-  l_marble_file = []
-  l_calle_file = []
   for cut in cuts:
     cut = cut.split("\n")[0]
     if cut[0] == "#":
       continue
-    if len(cut.split(" ")) != 3 and cut.split(" ")[0] != "MARBLE" and cut.split(" ")[0] != "CALLE":
+    if len(cut.split(" ")) != 3 and len(cut.split(" ")) != 11:
       print("load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut).")
       exit(1)
     if cut.split(" ")[0] == "x":
-      cutx.append([cut.split(" ")[1],cut.split(" ")[2]])
+      cutx.append([])
+      for i in range(1,len(cut.split(" "))):
+        cutx[-1].append(cut.split(" ")[i])
     elif cut.split(" ")[0] == "z":
       cutz.append([cut.split(" ")[1],cut.split(" ")[2]])
-    elif cut.split(" ")[0] == "MARBLE":
-      if glob(cut.split(" ")[1]):
-        l_marble_file = sorted(glob(cut.split(" ")[1]))
-        print("   Found marble files :" , l_marble_file)
-      else:
-        print("ERROR : could not find Marble reference file")
-        exit(1)
-    elif cut.split(" ")[0] == "CALLE":
-      if glob(cut.split(" ")[1]):
-        marble_ref = cut.split(" ")[1].replace("calle*","marbre_1000Hz.csv")
-        if os.path.isfile(marble_ref):
-          l_calle_file.append(marble_ref)
-        l_calle_file = l_calle_file + sorted(glob(cut.split(" ")[1]))
-        print("   Found calle files :", l_calle_file)
-      else:
-        print("ERROR : could not find calle file")
-        exit(1)
     else:
-      print("Load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut), or by MARBLE or CALLE.")
+      print("Load_cuts ERROR : bad cut format " + cut + ". Must start by x or z, followed by two values (range of the cut) for each measurement row.")
       exit(1)
-  return [[cutx,cutz], l_marble_file, l_calle_file]
+  return [cutx, cutz]
       
       
-def sort_data(lines, cut_file_arg, ID = 0):
+def sort_data(lines, cut_file_arg, row = 0):
   cutdata = [[[],[]]]
   rawdata = [[],[]]
   ignore = True
   do_cuts = False
   cutfile_content = []
-  cuts = []
-  l_marble_file = ""
-  l_calle_file = ""
+  cutx = []
+  cutz = []
   if cut_file_arg != "":
     print("  Loading cutfile " + cut_file_arg + "...")
     cutfile_content = load_cuts(cut_file_arg)
     do_cuts = True
   ################for line in lines:#####################
-    cuts = cutfile_content[0]
-    l_marble_file = cutfile_content[1]
-    l_calle_file = cutfile_content[2]
+    cutx = cutfile_content[0]
+    cutz = cutfile_content[1]
   for line in lines:
     x = float(line.split("\n")[0].split(";")[4])
     z = float(line.split("\n")[0].split(";")[0])
@@ -91,21 +113,21 @@ def sort_data(lines, cut_file_arg, ID = 0):
     addto = 0
     ################if do_cuts#####################
     if do_cuts:
-      for i in range(0,len(cuts[0])):    #for each x-z, loop over the x-cuts to see if the x-z pair must be ignored 
-        if (cuts[0][i][0] == "-inf" and x < float(cuts[0][i][1])) \
-        or (x > float(cuts[0][i][0]) and cuts[0][i][1] == "inf") \
-        or (x > float(cuts[0][i][0]) and cuts[0][i][1] == "+inf") \
-        or (x > float(cuts[0][i][0]) and x < float(cuts[0][i][1])):
+      for i in range(0,len(cutx)):    #for each x-z, loop over the x-cuts to see if the x-z pair must be ignored 
+        if (cutx[i][0 + 2*row] == "-inf" and x < float(cutx[i][1 + 2*row])) \
+        or (x > float(cutx[i][0 + 2*row]) and cutx[i][1 + 2*row] == "inf") \
+        or (x > float(cutx[i][0 + 2*row]) and cutx[i][1 + 2*row] == "+inf") \
+        or (x > float(cutx[i][0 + 2*row]) and x < float(cutx[i][1 + 2*row])):
           addto = i
           ignore = False
       if ignore:
         continue
         
-      for i in range(0,len(cuts[1])):    #for each x-z, loop over the z-cuts to see if the x-z pair must be ignored
-        if ( cuts[1][i][0] == "-inf" and z < float(cuts[1][i][1]) ) \
-        or ( cuts[1][i][0] == cuts[1][i][1] and z == float(cuts[1][i][0]) ) \
-        or ( z > float(cuts[1][i][0]) and (cuts[1][i][1] == "inf" or cuts[1][i][1] == "+inf") )\
-        or ( z > float(cuts[1][i][0]) and z < float(cuts[1][i][1]) ):    
+      for i in range(0,len(cutz)):    #for each x-z, loop over the z-cuts to see if the x-z pair must be ignored
+        if ( cutz[i][0] == "-inf" and z < float(cutz[i][1]) ) \
+        or ( cutz[i][0] == cutz[i][1] and z == float(cutz[i][0]) ) \
+        or ( z > float(cutz[i][0]) and (cutz[i][1] == "inf" or cutz[i][1] == "+inf") )\
+        or ( z > float(cutz[i][0]) and z < float(cutz[i][1]) ):    
           ignore = True
       
       if not ignore:
@@ -118,11 +140,13 @@ def sort_data(lines, cut_file_arg, ID = 0):
   if not do_cuts:
     cutdata.append(rawdata)
   
-  return [cutdata, rawdata, l_marble_file, l_calle_file]
+  return [cutdata, rawdata]
   
 def main(argv):
 
   #Booleans to ID the arguments p
+  opt_cali_file = False
+  cali_file_arg = ""
   opt_cut_file = False
   cut_file_arg = ""
   opt_data = False
@@ -130,17 +154,15 @@ def main(argv):
   opt_marble_fit_file = False
   marble_fit_file_arg = ""
   opt_separate_in_holes = False
+  opt_is_test = False
   
-  #Doit etre Vrai si des mesures du marbres ont ete prises avant ET apres la mesure, ou si que le marbre a ete mesure.
-  #Set to True if you want to fit the marble
-  do_marble_fit = True
-  #Set to true if your first and last groups of measurements are marble that are not cut out of the data by the cut you chose
   l_marble_file = []
   l_calle_file = []
+  l_marble_other_file = []
   
   #Read the arguments
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hi:c:m:s", [])
+    opts, args = getopt.getopt(sys.argv[1:], "hi:c:a:m:st", [])
   except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -149,6 +171,9 @@ def main(argv):
     if opt == "-h":
       usage()
       exit(1)
+    elif opt == "-a":
+      opt_cali_file = True
+      cali_file_arg = arg
     elif opt == "-c":
       opt_cut_file = True
       cut_file_arg = arg
@@ -160,6 +185,8 @@ def main(argv):
       marble_fit_file_arg = arg
     elif opt == "-s":
       opt_separate_in_holes = True
+    elif opt == "-t":
+      opt_is_test = True
     else:
       print("Unrecognized arguments")
       usage()
@@ -169,6 +196,13 @@ def main(argv):
   if not os.path.isfile(data_arg) and not os.path.isdir(data_arg):
     print("ERROR: " + data_arg + " not found.")
     exit(0)
+  if opt_cali_file:
+    if not os.path.isfile(cali_file_arg):
+      print("ERROR: cali file " + cali_file_arg + " not found.")
+      exit(0)
+    else:
+      print("  Loading califile " + cut_file_arg + "...")
+      l_marble_file, l_calle_file, l_other_marble_file = load_cali(cali_file_arg)
   if opt_cut_file:
     if not os.path.isfile(cut_file_arg):
       print("ERROR: cut file " + cut_file_arg + " not found.")
@@ -198,13 +232,15 @@ def main(argv):
     if "Distance" in lines[0]:
       lines = lines[1:]
     print(" Sorting data...")
-    tmp_l_l_cut_data, tmp_l_raw_data, l_marble_file, l_calle_file = sort_data(lines, cut_file_arg)
+    tmp_l_l_cut_data, tmp_l_raw_data = sort_data(lines, cut_file_arg, cali_file_arg, i)
     print(" ...done")
     l_l_raw_data.append(tmp_l_raw_data)
     if opt_marble_fit_file:
       print(" Found specified marble file " + marble_fit_file_arg)
       l_marble_file = [marble_fit_file_arg]
-    if do_marble_fit and (opt_cut_file or opt_marble_fit_file):
+    if l_other_marble_file != "":
+      plot_other_marble_file(l_other_marble_file)
+    if l_marble_file != []:
       print(" Correcting row " + str(i+1) + " with marble...")
       if i == 0:
         tmp_l_l_cut_data = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_calle_file)
@@ -220,6 +256,11 @@ def main(argv):
   print("Data has ",row," rows and ",col," columns")
   print("Plotting raw data...")
   plot_holes(l_l_raw_data, row, col, "raw_")
+  if opt_is_test:
+    plt.show()
+    #plt.clf()
+    #plt.close()
+    exit(0)
   print("...done")
   if opt_separate_in_holes:
     print("Analysing data...")

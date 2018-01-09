@@ -58,7 +58,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       sb_plot_data[0][i].set_title('hole ' + str(i+1) + ' Marble', fontsize=14)
       sb_plot_data[0][i].set_xlabel('z(micrometer)', fontsize=14)
       sb_plot_data[0][i].set_ylabel('count', fontsize=12)
-      i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]])#, color = 'C1')
+      i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]], color = 'C1')
       statbox = FormStatBox(df_z_inf['z'])
       sb_plot_data[0][i].text(plot_range_inf[0], 0.9*i_count_inf.max(), statbox,horizontalalignment='left')
       fig.add_subplot(sb_plot_data[0][i])
@@ -69,7 +69,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       
     sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize=14)
     sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize=14)
-    i_count_sup, binned_z , _ = sb_plot_data[1][i].hist(df_z_sup['z'], bins=nbin_sup, range = [plot_range_sup[0],plot_range_sup[1]])#, color = plot_color)
+    i_count_sup, binned_z , _ = sb_plot_data[1][i].hist(df_z_sup['z'], bins=nbin_sup, range = [plot_range_sup[0],plot_range_sup[1]], color = plot_color)
     sb_plot_data[1][i].set_ylim([0,1.1*i_count_sup.max()])
     binned_z = binned_z[:-1]
     Max = find_local_max(i_count_sup.copy(),np.array(binned_z.copy()), binsize)
@@ -95,7 +95,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
         continue
       fit_par = [len(df_z_sup)/2,possible_maximums[attempt][0],math.sqrt(float(df_z_sup.var()))/2,len(df_z_sup)/2,possible_maximums[attempt][1],math.sqrt(float(df_z_sup.var()))/2]
       fit_par_range = [0,1000*fit_par[0],plot_range_sup[0],plot_range_sup[1],0,30,0,1000*fit_par[3],plot_range_sup[0],plot_range_sup[1],0,30]
-      gaussians_param, rsquare, result = doublegaussfit(binned_z, i_count_sup, fit_par, sb_plot_data[1][i],fit_par_range)
+      gaussians_param, rsquare, result = doublegaussfit(binned_z, i_count_sup, fit_par, fit_par_range)
       if rsquare > 0 and abs(gaussians_param[1]-gaussians_param[4]) < 90 and abs(gaussians_param[1]-gaussians_param[4]) > 25:
         rsquares.append(rsquare)
         fitted_func.append(result)
@@ -145,7 +145,7 @@ def plot_holes(l_l_all_data, row, col, title = ""):
   ID = 2
   if title == "":
     ID = 3
-  fig = plt.figure(ID,figsize=(3*col, 4*row))
+  fig = plt.figure(ID,figsize=(3*col, 2*row))
   grid = gridspec.GridSpec(row, 1, wspace=0.2, hspace=0.5)
   for i in range(0,len(l_l_all_data)):
     sb_plot_holes.append(fig.add_subplot(int(str(row) + '1' + str(i+1))))

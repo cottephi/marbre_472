@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import pandas
 import scipy
+import os
 from toolbox import *
 
 def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
@@ -26,7 +27,6 @@ def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
   for line in content_marble_file:
     if float(line.split("\n")[0].split(";")[4])<startcut:
       continue
-    #note that sorted dict can not have twice the same key (here, the x coordinate). A workaround has been put in place for the real data (see main.py), but not here.
     l_marble_data[0].append(float(line.split("\n")[0].split(";")[4]))
     l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
   #remove the marble data too far from the mean
@@ -58,14 +58,15 @@ def plot_calle(file_calle_file,lr_fit):
       plot_title = "marble_ref"
       l_calle_data = marble_ref
     else:
-      plot_title = file_calle_file[i].replace("1000Hz","")
-      plot_title = remove_letters(plot_title)
-      plot_title = plot_title.replace("..","")
-      plot_title = plot_title.replace("2017","")
-      plot_title = plot_title.replace("2018","")
-      plot_title = plot_title.replace("/","")
-      plot_title = plot_title.replace("_","")
-      plot_title = plot_title.replace(".csv","")
+      plot_title = os.path.basename(file_calle_file[i])
+      #.replace("1000Hz","")
+      #plot_title = remove_letters(plot_title)
+      #plot_title = plot_title.replace("..","")
+      #plot_title = plot_title.replace("2017","")
+      #plot_title = plot_title.replace("2018","")
+      #plot_title = plot_title.replace("/","")
+      #plot_title = plot_title.replace("_","")
+      #plot_title = plot_title.replace(".csv","")
       print("   Opening calle file " + file_calle_file[i] + "...")
       calle_file = open(file_calle_file[i], "r")
       content_calle_file = calle_file.readlines()
@@ -73,21 +74,28 @@ def plot_calle(file_calle_file,lr_fit):
       if "Distance" in content_calle_file[0]:
         content_calle_file = content_calle_file[1:]
       if is_marble_ref:
-        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_calle_file]
+        #l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_calle_file]
+        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])) for line in content_calle_file]
       else:
         l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))) for line in content_calle_file]
       #-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))
     df_z = pandas.DataFrame({'z':l_calle_data})
     fig = plt.figure(100+i,figsize=(12, 12))
     sb_plot_calle.append(fig.add_subplot(111))
-    i_count, _, _ = sb_plot_calle[-1].hist(df_z['z'], bins='auto')
-    statbox = FormStatBox(df_z['z'])
-    sb_plot_calle[-1].text(df_z['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
+    i_count, binned_z, _ = sb_plot_calle[-1].hist(df_z['z'], bins='auto')
+    binned_z = binned_z[:-1]
+    maxz = [l_calle_data[i] for i,c in enumerate(i_count) if c == i_count.max()][0]
+    fit_par = [len(df_z), maxz, math.sqrt(float(df_z.var()))]
+    gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
+    sb_plot_calle[-1].plot(result[0], result[1], 'r-')
+    fitbox = FormFitBox(gaussians_param, df_z['z'])
+    sb_plot_calle[-1].text(df_z['z'].min(), 0.9*i_count.max(), fitbox, horizontalalignment='left')
     sb_plot_calle[-1].set_xlabel("Height (micrometer)")
     sb_plot_calle[-1].set_ylabel("Count")
     sb_plot_calle[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_calle[-1].set_title("Height of " + plot_title + " reference")
     fig.savefig("calle_" + str(plot_title) + ".pdf")
+    plt.close()
     print("   ...plot saved in calle_" + str(plot_title) + ".pdf")
 
 
@@ -107,17 +115,19 @@ def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1):
         l_l_corrected_data[-1][0].append(x)
         l_l_corrected_data[-1][1].append((z - lr_fit.predict(x))[0])
   print("   plotting marble data...")
-  plot_fit(npa_marble_x, npa_marble_z,l_marble_data, lr_fit, ID)
+  plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID)
   return [l_l_corrected_data, lr_fit]
 
 
-def plot_fit(npa_x, npa_z, l_xz, lr_fit, ID = 1):
+def plot_fit(npa_x, npa_z, lr_fit, ID = 1):
   npl_x_test = np.linspace(np.min(npa_x), np.max(npa_x), 100)
-  df_z = pandas.DataFrame({'z':l_xz[1]})
+  df_z = pandas.DataFrame({'z':npa_z})
+  npa_z_corr = [(z - lr_fit.predict(x))[0] for x,z in zip(npa_x, npa_z)]
+  df_z_corr = pandas.DataFrame({'z':npa_z_corr})
   fig = plt.figure(10+ID,figsize=(12, 12))
   #plt.tight_layout()
-  sb1 = fig.add_subplot(211)
-  sb1.set_title("Marble Height vs length")
+  sb1 = fig.add_subplot(311)
+  sb1.set_title("Marble Height vs length (z vs x, z histo before and after slope corr.)")
   sb1.set_xlabel('x(micrometer)', fontsize=14)
   sb1.set_ylabel('z(micrometer)', fontsize=12)
   sb1.scatter(npa_x, npa_z, color='black')
@@ -125,13 +135,71 @@ def plot_fit(npa_x, npa_z, l_xz, lr_fit, ID = 1):
   sb1.plot(npl_x_test, lr_fit.predict(npl_x_test[:,np.newaxis]), color='blue', linewidth=3)
   line_equation = 'z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2))
   plt.text(3*(npa_x.max()-npa_x.min())/4,1.005*npa_z.max(),line_equation,horizontalalignment='center', color='r')
-  sb2 = fig.add_subplot(212)
+  sb2 = fig.add_subplot(312)
   sb2.set_xlabel('z(micrometer)', fontsize=14)
   sb2.set_ylabel('count', fontsize=12)
   i_count, _, _ = sb2.hist(df_z['z'], bins='auto')
   statbox = FormStatBox(df_z['z'])
-  sb2.text(df_z['z'].min(), 0.9*i_count.max(), statbox,horizontalalignment='left')
+  sb2.text(df_z['z'].min(), 0.9*i_count.max(), statbox, horizontalalignment='left')
+  sb3 = fig.add_subplot(313)
+  sb3.set_xlabel('z(micrometer)', fontsize=14)
+  sb3.set_ylabel('count', fontsize=12)
+  i_count, binned_z, _ = sb3.hist(df_z_corr['z'], bins='auto')
+  binned_z = binned_z[:-1]
+  fit_par = [len(df_z_corr), 0, math.sqrt(float(df_z_corr.var()))]
+  gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
+  sb3.plot(result[0], result[1], 'r-')
+  fitbox = FormFitBox(gaussians_param, df_z['z'])
+  sb3.text(df_z_corr['z'].min(), 0.9*i_count.max(), fitbox, horizontalalignment='left')
   fig.savefig("marble_" + str(ID) + ".pdf",bbox_inches = "tight")
+  plt.close()
   print("   ...plot saved in marble_" + str(ID) + ".pdf")
   
+def plot_other_marble_file(other_marble_file):
+  nrow, ncol = GetNcolNrow(other_marble_file)
+  sb_plot_marble = []
+  fig = plt.figure(1000,figsize=(3*ncol, 3*nrow))
+  outer = gridspec.GridSpec(ncol, nrow, wspace=0.2, hspace=0.2)
+  for i in range(0,len(other_marble_file)):
+    File = other_marble_file[i]
+    inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
+    sb_plot_marble.append(plt.Subplot(fig, inner[0]))
+    l_marble_data = [[],[]]
+    print("  Opening other marble file " + File + "...")
+  #the rows of the real data and the rows of the marble data should correspond
+    marble_file = open(File, "r")
+    content_marble_file = marble_file.readlines()
+    marble_file.close()
+    #beginning of measurment usually is crap
+    #startcut = -900000
+    #remove header line
+    if "Distance" in content_marble_file[0]:
+      content_marble_file = content_marble_file[1:]
+    #read the file
+    for line in content_marble_file:
+      if float(line.split("\n")[0].split(";")[4])<startcut:
+        continue
+      l_marble_data[0].append(float(line.split("\n")[0].split(";")[4]))
+      l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
+  #remove the marble data too far from the mean
 
+    print("   plotting marble data...")
+    l_marble_data = cut(l_marble_data,[4])
+    plot_title = os.path.basename(File)
+    df_z = pandas.DataFrame({'z':l_marble_data[1]})
+    i_count, binned_z, _ = sb_plot_marble[-1].hist(df_z['z'], bins='auto')
+    binned_z = binned_z[:-1]
+    maxz = [l_marble_data[i] for i,c in enumerate(i_count) if c == i_count.max()][0]
+    fit_par = [len(df_z), maxz, math.sqrt(float(df_z.var()))]
+    gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
+    sb_plot_marble[-1].plot(result[0], result[1], 'r-')
+    fitbox = FormFitBox(gaussians_param, df_z['z'])
+    sb_plot_marble[-1].text(df_z['z'].min(), 0.9*i_count.max(), fitbox, horizontalalignment='left')
+    sb_plot_marble[-1].set_xlabel("Height (micrometer)")
+    sb_plot_marble[-1].set_ylabel("Count")
+    sb_plot_marble[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
+    sb_plot_marble[-1].set_title(plot_title)
+    fig.savefig("other_marble_" + str(plot_title) + ".pdf")
+    plt.close()
+    print("   ...plot saved in other_marble_" + str(plot_title) + ".pdf")
+    

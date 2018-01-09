@@ -51,50 +51,86 @@ def FormStatBox(df_z_selected):
 def FormFitBox(param, df_z_selected):
   if len(param) == 0:
     return 'fit failed'
-  return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n Second gaussian:\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2))) 
+  if len(param) == 3:
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n Int=' + str(round(Decimal(param[0]),2)) + '\n mean=' + str(round(Decimal(param[1]),2)) + '\n sigma=' + str(abs(round(Decimal(param[2]),2)))
+  if len(param) == 6:
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),2)) + '\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),2)) + '\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2))) 
   
-def gaussfit(df_z, sb):
-  l_fit_range = []
-  float_var_dataframe = df_z.var()
-  float_mean_dataframe = df_z.mean()
-  for float_z in df_z:
-    if float_z > float_mean_dataframe-3*math.sqrt(float_var_dataframe) and float_z < float_mean_dataframe+3*math.sqrt(float_var_dataframe):
-      l_fit_range.append(float_z)
-  npa_fit_range = np.array(l_fit_range)
-  npl_x_plot = np.linspace(float_mean_dataframe-3*math.sqrt(float_var_dataframe), float_mean_dataframe+3*math.sqrt(float_var_dataframe), 1000)
-  float_m, float_s = scipy.stats.norm.fit(npa_fit_range)
-  npa_result = df_z.count()*scipy.stats.norm.pdf(npl_x_plot, float_m, float_s)
-  sb.plot(npl_x_plot, npa_result)
+#def gaussfit(df_z, sb):
+  #l_fit_range = []
+  #float_var_dataframe = df_z.var()
+  #float_mean_dataframe = df_z.mean()
+  #for float_z in df_z:
+    #if float_z > float_mean_dataframe-3*math.sqrt(float_var_dataframe) and float_z < float_mean_dataframe+3*math.sqrt(float_var_dataframe):
+      #l_fit_range.append(float_z)
+  #npa_fit_range = np.array(l_fit_range)
+  #npl_x_plot = np.linspace(float_mean_dataframe-3*math.sqrt(float_var_dataframe), float_mean_dataframe+3*math.sqrt(float_var_dataframe), 1000)
+  #float_m, float_s = scipy.stats.norm.fit(npa_fit_range)
+  #npa_result = df_z.count()*scipy.stats.norm.pdf(npl_x_plot, float_m, float_s)
+  #sb.plot(npl_x_plot, npa_result)
+  
+def singlegaussfit(x,proba,par, range_p = []):
+  out = []
+  print("    Fit attempt around possible mean ",par[1],"...")
+  if range_p == []:
+    p,cov,infodict,mesg,ier = leastsq(e_single_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
+  else:
+    p,cov,infodict,mesg,ier = leastsq(e_single_gauss_fit, par[:]+range_p[:], args=(x, proba), maxfev=100000, full_output=1)
+  xxx = np.arange(min(x),max(x),x[1]-x[0])
+  ccc = single_gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelength
+  ss_err = (infodict['fvec']**2).sum()
+  ss_tot = ((proba-proba.mean())**2).sum()
+  rsquare = 1-(ss_err/ss_tot)
+  print("     Mean found : ",p[1]," R**2=",rsquare)
+  return p,rsquare, [xxx,ccc]
 
-def gauss_fit(p,x):
-  return p[0]*(1/np.sqrt(2*math.pi*(p[2]**2)))*np.exp(-(x-p[1])**2/(2*p[2]**2))+p[3]*(1/np.sqrt(2*math.pi*(p[5]**2)))*np.exp(-(x-p[4])**2/(2*p[5]**2))
+def e_single_gauss_fit(p, x, y):
+  range_p = p[3:]
+  if len(range_p) != 2*(len(p)-len(range_p)) and len(range_p) != 0:
+    print("ERROR: should have twice as many ranges than parameter in singlegaussfit")
+    exit(1)
+  #if p[0] > range_p[0] and p[0] < range_p[1] and p[1] > range_p[2] and p[1] < range_p[3] and p[2] > range_p[4] and p[2] < range_p[5] and p[3] > range_p[6] and p[3] < range_p[7] and p[4] > range_p[8] and p[4] < range_p[9] and p[5] > range_p[10] and p[5] < range_p[11]:
+  if len(range_p) != 0:
+    if p[2] > range_p[4] and p[2] < range_p[5]:
+      return single_gauss_fit(p,x) -y
+    else:
+      ret = [1e6 for i in [None]*(len(p))]
+      return ret
+  else:
+    return single_gauss_fit(p,x) -y
 
-def e_gauss_fit(p, x, y):
+def single_gauss_fit(p, x):
+  return p[0]*(1/np.sqrt(2*math.pi*(p[2]**2)))*np.exp(-(x-p[1])**2/(2*p[2]**2))
+  
+def doublegaussfit(x,proba,par, range_p = []):
+  out = []
+  print("    Fit attempt around possible means ",par[1]," and ",par[4],"...")
+  if range_p == []:
+    p,cov,infodict,mesg,ier = leastsq(e_double_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
+  else:
+    p,cov,infodict,mesg,ier = leastsq(e_double_gauss_fit, par[:]+range_p[:], args=(x, proba), maxfev=100000, full_output=1)
+  xxx = np.arange(min(x),max(x),x[1]-x[0])
+  ccc = double_gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelength
+  ss_err = (infodict['fvec']**2).sum()
+  ss_tot = ((proba-proba.mean())**2).sum()
+  rsquare = 1-(ss_err/ss_tot)
+  print("     Means found : ",p[1]," and ",p[4],", R**2=",rsquare)
+  return p,rsquare, [xxx,ccc]
+
+def e_double_gauss_fit(p, x, y):
   range_p = p[6:]
   if len(range_p) != 2*(len(p)-len(range_p)):
     print("ERROR: should have twice as many ranges than parameter in doublegaussfit")
     exit(1)
   #if p[0] > range_p[0] and p[0] < range_p[1] and p[1] > range_p[2] and p[1] < range_p[3] and p[2] > range_p[4] and p[2] < range_p[5] and p[3] > range_p[6] and p[3] < range_p[7] and p[4] > range_p[8] and p[4] < range_p[9] and p[5] > range_p[10] and p[5] < range_p[11]:
   if p[2] > range_p[4] and p[2] < range_p[5] and p[5] > range_p[10] and p[5] < range_p[11]:
-    return gauss_fit(p,x) -y
+    return double_gauss_fit(p,x) -y
   else:
     ret = [1e6 for i in [None]*(len(p))]
     return ret
-  
-def doublegaussfit(x,proba,par, sb, range_p = []):
-  out = []
-  print("    Fit attempt around possible means ",par[1]," and ",par[4],"...")
-  if range_p == []:
-    p,cov,infodict,mesg,ier = leastsq(e_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
-  else:
-    p,cov,infodict,mesg,ier = leastsq(e_gauss_fit, par[:]+range_p[:], args=(x, proba), maxfev=100000, full_output=1)
-  xxx = np.arange(min(x),max(x),x[1]-x[0])
-  ccc = gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelength
-  ss_err = (infodict['fvec']**2).sum()
-  ss_tot = ((proba-proba.mean())**2).sum()
-  rsquare = 1-(ss_err/ss_tot)
-  print("     Means found : ",p[1]," and ",p[4],", R**2=",rsquare)
-  return p,rsquare, [xxx,ccc]
+
+def double_gauss_fit(p, x):
+  return p[0]*(1/np.sqrt(2*math.pi*(p[2]**2)))*np.exp(-(x-p[1])**2/(2*p[2]**2))+p[3]*(1/np.sqrt(2*math.pi*(p[5]**2)))*np.exp(-(x-p[4])**2/(2*p[5]**2))
   
 def find_local_max(counts, values, binsize):
   posmax = [i for i,x in enumerate(counts) if x == counts.max()]
