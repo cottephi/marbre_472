@@ -137,14 +137,14 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, title = []):
       l_l_all_data[k-1][xz] = l_l_all_data[k-1][xz] + l_l_cut_data[i][xz]
     print("")
   fig.savefig("holes_histo.pdf")
-  plot_holes(l_l_all_data, row, col, title)
+  plot_holes(l_l_all_data, row, col, "", title)
   plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col)
 
 def plot_holes(l_l_all_data, row, col, name = "", title = []):
   sb_plot_holes = []
   ID = 2
   if len(title) == 0:
-    title = ["row "+str(i+1) for i in range(0,len(l_l_all_data))]
+    title = ["row "+str(i+1) for i in range(0,5)]
   if name == "":
     ID = 3
   fig = plt.figure(ID,figsize=(5*col, 4*row))

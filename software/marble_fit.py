@@ -37,10 +37,10 @@ def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
   l_l_cut_data, lr_fit = marble_fit(l_marble_data, l_l_cut_data, ID)
   if len(file_calle_file) != 0:
     print("  Plotting calle data...")
-    plot_calle(file_calle_file, lr_fit)
+    plot_calle(file_calle_file)
   return l_l_cut_data
     
-def plot_calle(file_calle_file,lr_fit):
+def plot_calle(file_calle_file):
   i = 0
   sb_plot_calle = []
   marble_ref = []
@@ -68,11 +68,13 @@ def plot_calle(file_calle_file,lr_fit):
       if "Distance" in content_calle_file[0]:
         content_calle_file = content_calle_file[1:]
       if is_marble_ref:
-        #l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_calle_file]
-        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])) for line in content_calle_file]
+        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_calle_file if float(line.split("\n")[0].split(";")[0]) > 0]
       else:
-        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))) for line in content_calle_file]
-      #-lr_fit.predict(float(line.split("\n")[0].split(";")[0]))
+        l_calle_data = [float(line.split("\n")[0].split(";")[0]) for line in content_calle_file if float(line.split("\n")[0].split(";")[0]) > 0]
+    if max(l_calle_data)-min(l_calle_data) > 500:
+      l_calle_data = [data for data in l_calle_data if data > (max(l_calle_data)-min(l_calle_data))/2 + min(l_calle_data)]
+      l_calle_data = cut(l_calle_data,[4])
+      print(max(l_calle_data))
     nbin = int((max(l_calle_data) - min(l_calle_data))/binsize)
     if nbin < 50:
       nbin = 'auto'
@@ -162,20 +164,19 @@ def plot_fit(npa_x, npa_z, lr_fit, ID = 1):
   print("   ...plot saved in marble_" + str(ID) + ".pdf")
   
 def plot_other_marble_file(other_marble_file):
-  nrow, ncol = GetNcolNrow(other_marble_file)
   sb_plot_marble = []
-  fig = plt.figure(1000,figsize=(3*ncol, 3*nrow))
-  outer = gridspec.GridSpec(ncol, nrow, wspace=0.2, hspace=0.2)
+  plt.subplots_adjust(left=0.01, bottom=0.1, right=0.99, top=0.99, wspace=0.2, hspace=0.2)
   binsize = 5
   for i in range(0,len(other_marble_file)):
+    fig = plt.figure(1000+i,figsize=(5, 8))
     File = other_marble_file[i]
-    inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
     l_marble_data = [[],[]]
     print("  Opening other marble file " + File + "...")
   #the rows of the real data and the rows of the marble data should correspond
     marble_file = open(File, "r")
     content_marble_file = marble_file.readlines()
     marble_file.close()
+    name = os.path.basename(File).replace(".csv",".pdf")
     #beginning of measurment usually is crap
     #startcut = -900000
     #remove header line
@@ -189,20 +190,19 @@ def plot_other_marble_file(other_marble_file):
       l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
     print("   plotting marble data...")
     l_marble_data = cut(l_marble_data,[4])
-  #remove the marble data too far from the mean
 
     nbin = int((max(l_marble_data[1]) - min(l_marble_data[1]))/binsize)
     if nbin < 50:
       nbin = 'auto'
     plot_title = os.path.basename(File)
     df_z = pandas.DataFrame({'z':l_marble_data[1]})
-    sb_plot_marble.append(plt.Subplot(fig, inner[0]))
+    sb_plot_marble.append(fig.add_subplot(211))
     sb_plot_marble[-1].set_xlabel("time (ms)")
     sb_plot_marble[-1].set_ylabel("z (micrometer)")
     sb_plot_marble[-1].set_ylim([0.9*min(l_marble_data[1]),1.1*max(l_marble_data[1])])
     sb_plot_marble[-1].set_title("z vs time")
     sb_plot_marble[-1].plot([ [i,x] for i,x in enumerate(l_marble_data[1])], 'g-')
-    sb_plot_marble.append(plt.Subplot(fig, inner[1]))
+    sb_plot_marble.append(fig.add_subplot(212))
     i_count, binned_z, _ = sb_plot_marble[-1].hist(df_z['z'], bins='auto')
     binned_z = binned_z[:-1]
     maxz = [l_marble_data[1][i] for i,c in enumerate(i_count) if c == i_count.max()][0]
@@ -215,8 +215,7 @@ def plot_other_marble_file(other_marble_file):
     sb_plot_marble[-1].set_ylabel("Count")
     sb_plot_marble[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_marble[-1].set_title(plot_title)
-  fig.show()
-  fig.savefig("other_marble.pdf")
+    fig.savefig(name)
   plt.close()
   print("   ...plot saved in other_marble.pdf")
     

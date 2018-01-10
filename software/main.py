@@ -257,7 +257,7 @@ def main(argv):
       
   print("Data has ",row," rows and ",col," columns")
   print("Plotting raw data...")
-  plot_holes(l_l_raw_data, row, col, "raw_", ["raw " + ti for ti in title])
+  plot_holes(l_l_raw_data, row, col, "raw_")#, ["raw " + ti for ti in title])
   if opt_is_test:
     plt.show()
     #plt.clf()

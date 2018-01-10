@@ -29,21 +29,39 @@ def cut(xz, myrange):
   elif type(xz) is list:
     if len(xz) == 0:
       return xz
-    cut_xz = [[],[]]
     if len(myrange) == 1:
-      np_xz = np.array(xz[1])
-      for i in range(0,len(xz[0])):
-        if not abs(np_xz.mean()-xz[1][i]) > myrange[0]*math.sqrt(np_xz.var()):
-          cut_xz[1].append(xz[1][i])
-          cut_xz[0].append(xz[0][i])
+      if len(xz) == 2:
+        cut_xz = [[],[]]
+        np_xz = np.array(xz[1])
+        for i in range(0,len(xz[0])):
+          if not abs(np_xz.mean()-xz[1][i]) > myrange[0]*math.sqrt(np_xz.var()):
+            cut_xz[1].append(xz[1][i])
+            cut_xz[0].append(xz[0][i])
+        return cut_xz
+      else:
+        cut_z = []
+        np_z = np.array(xz)
+        for i in range(0,len(xz)):
+          if not abs(np_z.mean()-xz[i]) > myrange[0]*math.sqrt(np_z.var()):
+            cut_z.append(xz[i])
+        return cut_z
     elif len(myrange) == 2:
-      for i in range(0,len(xz[0])):
-        if xz[1][i] < myrange[1] and xz[1][i] > myrange[0]:
-          cut_xz[1].append(xz[1][i])
-          cut_xz[0].append(xz[0][i])
+      if len(xz) == 2:
+        cut_xz = [[],[]]
+        for i in range(0,len(xz[0])):
+          if xz[1][i] < myrange[1] and xz[1][i] > myrange[0]:
+            cut_xz[1].append(xz[1][i])
+            cut_xz[0].append(xz[0][i])
+        return cut_xz
+      else:
+        cut_z = []
+        np_z = np.array(xz)
+        for i in range(0,len(xz)):
+          if xz[i] < myrange[1] and xz[i] > myrange[0]:
+            cut_z.append(xz[i])
+        return cut_z
     else:
-      cut_xz = xz
-    return cut_xz
+      return xz
   
 def FormStatBox(df_z_selected):
   return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),0)) + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),2))
