@@ -266,7 +266,7 @@ def main(argv):
   print("...done")
   if opt_separate_in_holes:
     print("Analysing data...")
-    my_analysis(l_l_cutdata, row, col, title)
+    my_analysis(l_l_cutdata, row, col)
     print("done")
   else:
     for l_data in l_l_cutdata:
