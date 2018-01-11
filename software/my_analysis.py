@@ -131,6 +131,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       thick_sigmathick_rim_sigmarim[3].append(math.sqrt(sigma1**2+sigma2**2))
     statbox = FormStatBox(df_z_sup['z'])
     fitbox = FormFitBox(gaussians_params, df_z_sup['z'])
+    print(fitbox)
     sb_plot_data[1][i].text(Max[0]*0.83, 0.75*i_count_sup.max(), fitbox,horizontalalignment='left')#, color = 'r')
     fig.add_subplot(sb_plot_data[1][i])
     for xz in range(0,len(l_l_all_data[k-1])):
