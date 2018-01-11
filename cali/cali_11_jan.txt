@@ -1,0 +1,3 @@
+MARBLE ../data/cali/jan_2018/08_jan/marbre*
+CALLE ../data/cali/jan_2018/11_jan/calle*
+MARBLE_OTHER ../data/cali/jan_2018/11_jan/marbre*
