@@ -245,9 +245,9 @@ def main(argv):
     if l_marble_file != []:
       print(" Correcting row " + str(i+1) + " with marble...")
       if i == 0:
-        tmp_l_l_cut_data = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_calle_file)
+        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_calle_file)
       else:
-        tmp_l_l_cut_data = marble(tmp_l_l_cut_data, l_marble_file, i+1, [])
+        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, [])
       print(" ...done")
       print("")
     l_l_cutdata = l_l_cutdata + tmp_l_l_cut_data
@@ -266,14 +266,14 @@ def main(argv):
   print("...done")
   if opt_separate_in_holes:
     print("Analysing data...")
-    my_analysis(l_l_cutdata, row, col)
+    my_analysis(l_l_cutdata, row, col, sigmarble)
     print("done")
   else:
     for l_data in l_l_cutdata:
       l_l_glued_cutdata[0][0] = l_l_cutdata[0][0] + l_data[0]
       l_l_glued_cutdata[0][1] = l_l_cutdata[0][1] + l_data[1]
     print("Analysing non-separated data...")
-    my_analysis(l_l_glued_cutdata,1,1)
+    my_analysis(l_l_glued_cutdata,1,1, sigmarble)
     print("...done")
   
   #plt.show()

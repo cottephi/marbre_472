@@ -4,6 +4,7 @@ from sortedcontainers import SortedDict
 import math
 from sklearn import linear_model
 import matplotlib.pyplot as plt
+import matplotlib
 import pandas
 import scipy
 import matplotlib.gridspec as gridspec
@@ -11,15 +12,15 @@ import matplotlib.ticker as tk
 import itertools as it
 from toolbox import *
 
-def my_analysis(l_l_cut_data, row = 1, col = 1):
+def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0):
   int_nrow, int_ncol = row, col #GetNcolNrow(l_l_cut_data)
   sb_plot_data = [[],[]]
-  fig = plt.figure(1,figsize=(6*col, 6*row))
+  fig = plt.figure(1,figsize=(18*col, 18*row))
   plt.subplots_adjust(left=0.01, bottom=0.1, right=0.99, top=0.99, wspace=0.2, hspace=0.2)
   outer = gridspec.GridSpec(int_nrow, int_ncol, wspace=0.2, hspace=0.2)
   l_l_all_data = []
   k = 0
-  thick_sigmathick_rim_sigmarim = [[],[],[],[]]
+  thick_sigmathick_rim_sigmarim = [[],[],[],[],[],[]]
   for i in range(0,len(l_l_cut_data)):
     print("   Analysing hole ",i+1,"...")
     skip_inf = True
@@ -57,7 +58,6 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       sb_plot_data[0].append(plt.Subplot(fig, inner[0]))
       sb_plot_data[0][i].set_title('hole ' + str(i+1) + ' Marble', fontsize=14)
       sb_plot_data[0][i].set_xlabel('z(micrometer)', fontsize=14)
-      sb_plot_data[0][i].set_ylabel('count', fontsize=12)
       i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]], color = 'b')
       statbox = FormStatBox(df_z_inf['z'])
       sb_plot_data[0][i].text(plot_range_inf[0], 0.9*i_count_inf.max(), statbox,horizontalalignment='left')
@@ -67,72 +67,37 @@ def my_analysis(l_l_cut_data, row = 1, col = 1):
       inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
       sb_plot_data[1].append(plt.Subplot(fig, inner[0]))
       
-    sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize=14)
-    sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize=14)
+    sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize=12*col)
+    sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize=12*col)
+    sb_plot_data[1][i].set_ylabel('count', fontsize=12*col)
+    sb_plot_data[1][i].tick_params(axis='both', which='major', labelsize=8*col)
     i_count_sup, binned_z , _ = sb_plot_data[1][i].hist(df_z_sup['z'], bins=nbin_sup, range = [plot_range_sup[0],plot_range_sup[1]], color = plot_color)
     sb_plot_data[1][i].set_ylim([0,1.1*i_count_sup.max()])
     binned_z = binned_z[:-1]
     Max = find_local_max(i_count_sup.copy(),np.array(binned_z.copy()), binsize)
     if len(Max) == 0:
-      Max = [1050,1150]
+      Max = [1200,1140]
     if len(Max) == 1:
-      Max.append(Max[0])
-    if Max[0] == Max[1]:
-      Max[0] = Max[1]-50
-    possible_maximums = list(it.permutations(Max,2))
-    attempt = 0
-    rsquares = []
-    gaussians_params = []
-    fitted_func = []
+      Max.append(Max[0]-60)
+    #possible_maximums = [ [z1,z2] for [z1,z2] in list(it.permutations(Max,2)) if z1 > z2 and z1-z2 < 90 and z1-z2 > 40]
+    possible_maximums = [ z for z in Max if (z < Max[0] and Max[0]-z < 90 and Max[0]-z > 40) or z == Max[0] ]
+    if len(possible_maximums) == 0:
+      possible_maximums.append([1200,1140])
+    
     print("   fitting data...")
-    ###########while attempt < len(possible_maximums):###############
-    while attempt < len(possible_maximums):
-      rsquare = 0
-      result = []
-      gaussians_param = []
-      if abs(possible_maximums[attempt][0]-possible_maximums[attempt][1]) > 90 or abs(possible_maximums[attempt][0]-possible_maximums[attempt][1]) < 25:
-        attempt = attempt + 1
-        continue
-      fit_par = [len(df_z_sup)/2,possible_maximums[attempt][0],math.sqrt(float(df_z_sup.var()))/2,len(df_z_sup)/2,possible_maximums[attempt][1],math.sqrt(float(df_z_sup.var()))/2]
-      fit_par_range = [0,1000*fit_par[0],plot_range_sup[0],plot_range_sup[1],0,30,0,1000*fit_par[3],plot_range_sup[0],plot_range_sup[1],0,30]
-      gaussians_param, rsquare, result = doublegaussfit(binned_z, i_count_sup, fit_par, fit_par_range)
-      if rsquare > 0 and abs(gaussians_param[1]-gaussians_param[4]) < 90 and abs(gaussians_param[1]-gaussians_param[4]) > 25:
-        rsquares.append(rsquare)
-        fitted_func.append(result)
-        gaussians_params.append(gaussians_param)
-      elif rsquare <= 0:
-        print("   discarding result (R**2 < 0)")
-      else:
-        print("   discarding result (means too close or too far away)")
-      attempt = attempt + 1
-    ###########while attempt < len(possible_maximums):###############
-    if len(rsquares) == 0:
-      print("   ...fit failed")
-      thick_sigmathick_rim_sigmarim[0].append(0)
-      thick_sigmathick_rim_sigmarim[1].append(0)
-      thick_sigmathick_rim_sigmarim[2].append(0)
-      thick_sigmathick_rim_sigmarim[3].append(0)
-    else:
-      best_fit = [ir for ir,r in enumerate(rsquares) if r == max(rsquares)][0]
-      sb_plot_data[1][i].plot(fitted_func[best_fit][0], fitted_func[best_fit][1], 'r-')
-      gaussians_params = gaussians_params[best_fit]
-      print("   best fit : means = [",gaussians_params[1],",",gaussians_params[4],"] with R**2=",max(rsquares))
-      z1 = min(gaussians_params[1], gaussians_params[4])
-      if z1 == gaussians_params[1]:
-        sigma1 = gaussians_params[2]
-        sigma2 = gaussians_params[5]
-      else:
-        sigma1 = gaussians_params[5]
-        sigma2 = gaussians_params[2]
-      z2 = max(gaussians_params[1], gaussians_params[4])
-      thick_sigmathick_rim_sigmarim[0].append(2*z1-z2)
-      thick_sigmathick_rim_sigmarim[1].append(math.sqrt(4*sigma1**2+sigma2**2))
-      thick_sigmathick_rim_sigmarim[2].append(z2-z1)
-      thick_sigmathick_rim_sigmarim[3].append(math.sqrt(sigma1**2+sigma2**2))
+    
+    tmp_thick_sigmathick_rim_sigmarim, gaussians_params, fitted_func1, fitted_func2 = mydoublefit(df_z_sup, binned_z, i_count_sup, possible_maximums, plot_range_sup, sigmarble)
+    
+    for j in range(0,len(thick_sigmathick_rim_sigmarim)):
+      thick_sigmathick_rim_sigmarim[j].append(tmp_thick_sigmathick_rim_sigmarim[j])
+
+    sb_plot_data[1][i].plot(fitted_func1[0], fitted_func1[1], 'r-')
+    if len(fitted_func2) != 0:
+      sb_plot_data[1][i].plot(fitted_func2[0], fitted_func2[1], 'r-')
     statbox = FormStatBox(df_z_sup['z'])
     fitbox = FormFitBox(gaussians_params, df_z_sup['z'])
     print(fitbox)
-    sb_plot_data[1][i].text(Max[0]*0.83, 0.75*i_count_sup.max(), fitbox,horizontalalignment='left')#, color = 'r')
+    sb_plot_data[1][i].text(Max[0]*0.77, 0.5*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = 8*col)
     fig.add_subplot(sb_plot_data[1][i])
     for xz in range(0,len(l_l_all_data[k-1])):
       l_l_all_data[k-1][xz] = l_l_all_data[k-1][xz] + l_l_cut_data[i][xz]
@@ -160,10 +125,14 @@ def plot_holes(l_l_all_data, row, col, name = ""):
   fig.savefig(name + "holes.pdf")
   
 def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col):
-  thick,sigmathick,rim,sigmarim = np.array(thick_sigmathick_rim_sigmarim)
+  thick, sigmathick, FR4, sigmaFR4, Cu, sigmaCu = np.array(thick_sigmathick_rim_sigmarim)
+  print("Result : ")
+  for i in range(0,len(thick)):
+    print(" Hole ",i,": ",thick[i],"+/-",sigmathick[i]," microns thick")
+    print("    Cu: ",Cu[i],"+/-",sigmaCu[i]," microns, FR4: ", FR4[i],"+/-",sigmaFR4[i]," microns")
   plot_2D_map(thick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col)
-  thick,sigmathick,rim,sigmarim = np.array(thick_sigmathick_rim_sigmarim)
-  plot_2D_map(rim,5,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col)
+  plot_2D_map(FR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col)
+  plot_2D_map(Cu,6,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col)
   
 def plot_2D_map(z,figID,title, savename, row, col):
   fig = plt.figure(figID,figsize=(3*col, 3*row))
@@ -181,4 +150,72 @@ def plot_2D_map(z,figID,title, savename, row, col):
     sb_plot_2D_map.annotate(mytext,xy=(x[i],y[i]), color='g')
   fig.colorbar(p)
   fig.savefig(savename)
+  
+def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
+  thick_sigmathick_rim_sigmarim = []
+  attempt = 1
+  fit_par1 = [len(df_z)/2,maxima[0],6]
+  fit_par_range1 = [0,1000*fit_par1[0],plot_range[0],plot_range[1],0,30]
+  range_z1 = np.array([z for z in binned_z if z < maxima[0]+50 and z > maxima[0]-50])
+  range_count1 = np.array([i for [z,i] in zip(binned_z, i_count) if z < maxima[0]+50 and z > maxima[0]-50])
+  print("    Fitting whole LEM...")
+  gaussians_param1, rsquare1, result1 = singlegaussfit(range_z1, range_count1, fit_par1, fit_par_range1)
+  if rsquare1 < 0.8:
+    print("   Fit failed")
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    return thick_sigmathick_rim_sigmarim,[],[],[]
+  z1 = gaussians_param1[1]
+  sigma1 = math.sqrt(gaussians_param1[2]**2-sigmarble**2)
+  rsquares = []
+  fitted_func = []
+  gaussians_params = []
+  gaussians_param2 = []
+  ###########while attempt < len(possible_maximums):###############
+  while attempt < len(maxima):
+    print("    attempting to fit FR4...")
+    fit_par2 = [len(df_z)/2,maxima[attempt],12]
+    fit_par_range2 = [0,1000*fit_par2[0],plot_range[0],plot_range[1],0,30]
+    range_z2 = np.array([z for z in binned_z if z < maxima[attempt]+50 and z > maxima[attempt]-50])
+    range_count2 = np.array([i for [z,i] in zip(binned_z, i_count) if z < maxima[attempt]+50 and z > maxima[attempt]-50])
+    gaussians_param2, rsquare2, result2 = singlegaussfit(range_z2, range_count2, fit_par2, fit_par_range2)
+    if rsquare2 > 0 and abs(gaussians_param1[1]-gaussians_param2[1]) < 90 and abs(gaussians_param1[1]-gaussians_param2[1]) > 40 and gaussians_param1[0]/gaussians_param2[0] < 9:
+      rsquares.append(rsquare2)
+      fitted_func.append(result2)
+      gaussians_params.append(gaussians_param2)
+    elif rsquare2 <= 0:
+      print("    discarding result (R**2 < 0)")
+    elif abs(gaussians_param1[1]-gaussians_param2[1]) > 90 and abs(gaussians_param1[1]-gaussians_param2[1]) < 40:
+      print("    discarding result (means too close or too far away)")
+    else:
+      print("    discarding result (FR4 fit too small)")
+    attempt = attempt + 1
+  ###########while attempt < len(possible_maximums):###############
+  if len(rsquares) == 0:
+    print("    ...FR4 fit failed")
+    thick_sigmathick_rim_sigmarim.append(z1)
+    thick_sigmathick_rim_sigmarim.append(sigma1)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    return thick_sigmathick_rim_sigmarim, gaussians_param1 + [0,0,0], result1, []
+      
+  else:
+    best_fit = [ir for ir,r in enumerate(rsquares) if r == max(rsquares)][0]
+    gaussians_param2 = gaussians_params[best_fit]
+    print("    best fit : ",gaussians_param2[1]," with R**2=",max(rsquares))
+    z2 = gaussians_param2[1]
+    sigma2 = math.sqrt(gaussians_param2[2]**2-sigmarble**2)
+    thick_sigmathick_rim_sigmarim.append(z1)
+    thick_sigmathick_rim_sigmarim.append(sigma1)
+    thick_sigmathick_rim_sigmarim.append(2*z2-z1)
+    thick_sigmathick_rim_sigmarim.append(math.sqrt(4*sigma2**2+sigma1**2))
+    thick_sigmathick_rim_sigmarim.append(z1-z2)
+    thick_sigmathick_rim_sigmarim.append(math.sqrt(sigma1**2+sigma2**2))
+    return thick_sigmathick_rim_sigmarim, list(gaussians_param1) + list(gaussians_param2), result1, fitted_func[best_fit]
 

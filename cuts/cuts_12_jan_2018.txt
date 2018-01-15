@@ -1,0 +1,4 @@
+#x ranges are kept, whereas z ranges are ignored (i.e, in this example, and x between 170000 and 190000 is kept, but a z equal to 0 will be removed) 
+x 158000 176000
+z 0 0
+#z 4000 inf

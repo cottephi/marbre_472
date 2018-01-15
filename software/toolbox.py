@@ -71,8 +71,11 @@ def FormFitBox(param, df_z_selected):
     return 'fit failed'
   if len(param) == 3:
     return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n Int=' + str(round(Decimal(param[0]),2)) + '\n mean=' + str(round(Decimal(param[1]),2)) + '\n sigma=' + str(abs(round(Decimal(param[2]),2)))
+  elif len(param) == 6:
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),2)) + '\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),2)) + '\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2)))
   else:
-    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),2)) + '\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),2)) + '\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2))) 
+    print("ERROR: unknown number of parameter in FormFitBox")
+    exit(1)
   
 #def gaussfit(df_z, sb):
   #l_fit_range = []
@@ -100,7 +103,7 @@ def singlegaussfit(x,proba,par, range_p = []):
   ss_tot = ((proba-proba.mean())**2).sum()
   rsquare = 1-(ss_err/ss_tot)
   print("     Mean found : ",p[1]," R**2=",rsquare)
-  return p,rsquare, [xxx,ccc]
+  return p[:len(p)-len(range_p)],rsquare, [xxx,ccc]
 
 def e_single_gauss_fit(p, x, y):
   range_p = p[3:]
@@ -133,7 +136,7 @@ def doublegaussfit(x,proba,par, range_p = []):
   ss_tot = ((proba-proba.mean())**2).sum()
   rsquare = 1-(ss_err/ss_tot)
   print("     Means found : ",p[1]," and ",p[4],", R**2=",rsquare)
-  return p,rsquare, [xxx,ccc]
+  return p[:len(p)-len(range_p)],rsquare, [xxx,ccc]
 
 def e_double_gauss_fit(p, x, y):
   range_p = p[6:]
@@ -165,7 +168,7 @@ def find_local_max(counts, values, binsize):
       counts2[tmp_posmax] = 0
       continue
     for i in range(0,len(posmax)):
-      if (tmp_posmax <= posmax[i]+int(30/binsize) and tmp_posmax >= posmax[i]-int(30/binsize)) or counts[tmp_posmax+1] == 0 or counts[tmp_posmax-1] == 0:
+      if tmp_posmax >= posmax[i]-int(30/binsize) or counts[tmp_posmax+1] == 0 or counts[tmp_posmax-1] == 0:
         counts2[tmp_posmax] = 0
         rec = False
         break

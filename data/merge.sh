@@ -15,8 +15,23 @@ if ls $path/*merged* 2>/dev/null 1>&2 ; then
   rm $path/*merged*
   echo "removed previous merged file..."
 fi
+pattern="chien"
+if ls $path/*c1* 2>/dev/null 1>&2 ; then
+  pattern="c"
+fi
+if ls $path/*r1* 2>/dev/null 1>&2 ; then
+  if [ $pattern == "c" ] ; then
+    echo "ERROR: Cannot have row and columns in the same folder."
+    exit 1
+  fi
+  pattern="r"
+fi
+if [ $pattern == "chien" ] ; then 
+  echo "ERROR : Cannot find row or column files"
+  exit 1
+fi
 
-for file in $path/*_c1_*.csv ; do
+for file in $path/*_${pattern}1_*.csv ; do
   filename="$(basename "${file}")"
   if [ ! -f ${file} ] ; then
     continue
@@ -24,7 +39,7 @@ for file in $path/*_c1_*.csv ; do
   echo "Merging $filename..."
   tail -n +2 "$file" | cat >> $path/merged_1.csv
 done
-for file in $path/*_c2_*.csv ; do
+for file in $path/*_${pattern}2_*.csv ; do
   filename="$(basename "${file}")"
   if [ ! -f ${file} ] ; then
     continue
@@ -32,7 +47,7 @@ for file in $path/*_c2_*.csv ; do
   echo "Merging $filename..."
   tail -n +2 "$file" | cat >> $path/merged_2.csv
 done
-for file in $path/*_c3_*.csv ; do
+for file in $path/*_${pattern}3_*.csv ; do
   filename="$(basename "${file}")"
   if [ ! -f ${file} ] ; then
     continue
@@ -40,7 +55,7 @@ for file in $path/*_c3_*.csv ; do
   echo "Merging $filename..."
   tail -n +2 "$file" | cat >> $path/merged_3.csv
 done
-for file in $path/*_c4_*.csv ; do
+for file in $path/*_${pattern}4_*.csv ; do
   filename="$(basename "${file}")"
   if [ ! -f ${file} ] ; then
     continue
@@ -48,7 +63,7 @@ for file in $path/*_c4_*.csv ; do
   echo "Merging $filename..."
   tail -n +2 "$file" | cat >> $path/merged_4.csv
 done
-for file in $path/*_c5_*.csv ; do
+for file in $path/*_${pattern}5_*.csv ; do
   filename="$(basename "${file}")"
   if [ ! -f ${file} ] ; then
     continue

@@ -34,11 +34,11 @@ def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
 
   l_marble_data = cut(l_marble_data,[4])
   
-  l_l_cut_data, lr_fit = marble_fit(l_marble_data, l_l_cut_data, ID)
+  l_l_cut_data, lr_fit, sigmarble = marble_fit(l_marble_data, l_l_cut_data, ID)
   if len(file_calle_file) != 0:
     print("  Plotting calle data...")
     plot_calle(file_calle_file)
-  return l_l_cut_data
+  return l_l_cut_data, sigmarble
     
 def plot_calle(file_calle_file):
   i = 0
@@ -123,8 +123,8 @@ def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1):
         l_l_corrected_data[-1][0].append(x)
         l_l_corrected_data[-1][1].append((z - lr_fit.predict(x))[0])
   print("   plotting marble data...")
-  plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID)
-  return [l_l_corrected_data, lr_fit]
+  sigmarble = plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID)
+  return [l_l_corrected_data, lr_fit, sigmarble]
 
 
 def plot_fit(npa_x, npa_z, lr_fit, ID = 1):
@@ -162,6 +162,7 @@ def plot_fit(npa_x, npa_z, lr_fit, ID = 1):
   fig.savefig("marble_" + str(ID) + ".pdf",bbox_inches = "tight")
   plt.close()
   print("   ...plot saved in marble_" + str(ID) + ".pdf")
+  return gaussians_param[2]
   
 def plot_other_marble_file(other_marble_file):
   sb_plot_marble = []
