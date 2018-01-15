@@ -132,15 +132,15 @@ def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col):
     print("    Cu: ",Cu[i],"+/-",sigmaCu[i]," microns, FR4: ", FR4[i],"+/-",sigmaFR4[i]," microns")
   plot_2D_map(thick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col)
   plot_2D_map(FR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col)
-  plot_2D_map(Cu,6,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col)
+  plot_2D_map(Cu,6,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90)
   
-def plot_2D_map(z,figID,title, savename, row, col):
+def plot_2D_map(z,figID,title, savename, row, col, v0 = 800, v1 = 1300):
   fig = plt.figure(figID,figsize=(3*col, 3*row))
   sb_plot_2D_map = fig.add_subplot(111)
   x = [i%(col)+1 for i in range(0,len(z))]
   y = [row-(int(i/col)) for i in range(0,len(z))]
   marker_size = good_marker_size(x,y,fig,sb_plot_2D_map)
-  p = sb_plot_2D_map.scatter(x,y,c=z, s=marker_size[0]*marker_size[1], marker='.', cmap=cm.plasma, linewidth=0)
+  p = sb_plot_2D_map.scatter(x,y,c=z, s=marker_size[0]*marker_size[1], marker='.', cmap=cm.plasma, linewidth=0, vmin=v0, vmax=v1)
   #sb_plot_2D_map.axis([min(x)-1., max(x)+1., min(y)-1., max(y)+1.])
   sb_plot_2D_map.set_yticks([])
   sb_plot_2D_map.set_xticks([])
@@ -183,7 +183,7 @@ def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
     range_z2 = np.array([z for z in binned_z if z < maxima[attempt]+50 and z > maxima[attempt]-50])
     range_count2 = np.array([i for [z,i] in zip(binned_z, i_count) if z < maxima[attempt]+50 and z > maxima[attempt]-50])
     gaussians_param2, rsquare2, result2 = singlegaussfit(range_z2, range_count2, fit_par2, fit_par_range2)
-    if rsquare2 > 0 and abs(gaussians_param1[1]-gaussians_param2[1]) < 90 and abs(gaussians_param1[1]-gaussians_param2[1]) > 40 and gaussians_param1[0]/gaussians_param2[0] < 9:
+    if rsquare2 > 0 and abs(gaussians_param1[1]-gaussians_param2[1]) < 90 and abs(gaussians_param1[1]-gaussians_param2[1]) > 40:# and gaussians_param1[0]/gaussians_param2[0] < 9:
       rsquares.append(rsquare2)
       fitted_func.append(result2)
       gaussians_params.append(gaussians_param2)
