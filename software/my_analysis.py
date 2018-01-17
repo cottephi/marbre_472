@@ -70,12 +70,11 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, outdirectory = ".
     i_count_sup, binned_z , _ = sb_plot_data[1][i].hist(df_z_sup['z'], bins=nbin_sup, range = [plot_range_sup[0],plot_range_sup[1]], color = plot_color)
     y1, y2 = sb_plot_data[1][i].get_window_extent().get_points()[:, 1]
     yscale = (y2-y1)/(1.1*i_count_sup.max())
-    #fontsize = 2*yscale
-    fontsize = 12
-    print(fontsize)
-    sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize = fontsize)
+    #fontsize = 10*yscale
+    fontsize = 30
+    sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize = 1.2*fontsize)
     sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize = fontsize)
-    sb_plot_data[1][i].set_ylabel('count', fontsize = fontsize)
+    sb_plot_data[1][i].set_ylabel('count', fontsize = 0.8*fontsize)
     sb_plot_data[1][i].tick_params(axis='both', which='major', labelsize = fontsize)
     sb_plot_data[1][i].set_ylim([0,1.1*i_count_sup.max()])
     binned_z = binned_z[:-1]
@@ -102,7 +101,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, outdirectory = ".
     statbox = FormStatBox(df_z_sup['z'])
     fitbox = FormFitBox(gaussians_params, df_z_sup['z'])
     print(fitbox)
-    sb_plot_data[1][i].text(Max[0]*0.77, 0.5*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = fontsize)
+    sb_plot_data[1][i].text(Max[0]*0.8, 0.5*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = fontsize)
     fig.add_subplot(sb_plot_data[1][i])
     for xz in range(0,len(l_l_all_data[k-1])):
       l_l_all_data[k-1][xz] = l_l_all_data[k-1][xz] + l_l_cut_data[i][xz]
