@@ -10,7 +10,7 @@ import os
 import matplotlib.gridspec as gridspec
 from toolbox import *
 
-def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
+def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = [], outdirectory = "./"):
   l_marble_data = [[],[]]
   if ID > len(file_marble_file):
     print("ERROR: should have as many marble measurements than holes measurements")
@@ -32,15 +32,15 @@ def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = []):
     l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
   #remove the marble data too far from the mean
 
-  l_marble_data = cut(l_marble_data,[4])
+  l_marble_data = cut(l_marble_data,[2])
   
-  l_l_cut_data, lr_fit, sigmarble = marble_fit(l_marble_data, l_l_cut_data, ID)
+  l_l_cut_data, lr_fit, sigmarble = marble_fit(l_marble_data, l_l_cut_data, ID, outdirectory)
   if len(file_calle_file) != 0:
     print("  Plotting calle data...")
-    plot_calle(file_calle_file)
+    plot_calle(file_calle_file, outdirectory)
   return l_l_cut_data, sigmarble
     
-def plot_calle(file_calle_file):
+def plot_calle(file_calle_file, outdirectory = "./"):
   i = 0
   sb_plot_calle = []
   marble_ref = []
@@ -102,12 +102,12 @@ def plot_calle(file_calle_file):
     sb_plot_calle[-1].set_ylabel("Count")
     sb_plot_calle[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_calle[-1].set_title("Height of " + plot_title + " reference")
-    fig.savefig("calle_" + str(plot_title) + ".pdf")
+    fig.savefig(outdirectory + "/calle_" + str(plot_title) + ".pdf")
     plt.close()
-    print("   ...plot saved in calle_" + str(plot_title) + ".pdf")
+    print("   ...plot saved in " + outdirectory + "/calle_" + str(plot_title) + ".pdf")
 
 
-def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1):
+def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./"):
   npa_marble_x = np.array(l_marble_data[0])
   npa_marble_z = np.array(l_marble_data[1])
   lr_fit = linear_model.LinearRegression()
@@ -123,11 +123,11 @@ def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1):
         l_l_corrected_data[-1][0].append(x)
         l_l_corrected_data[-1][1].append((z - lr_fit.predict(x))[0])
   print("   plotting marble data...")
-  sigmarble = plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID)
+  sigmarble = plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID, outdirectory)
   return [l_l_corrected_data, lr_fit, sigmarble]
 
 
-def plot_fit(npa_x, npa_z, lr_fit, ID = 1):
+def plot_fit(npa_x, npa_z, lr_fit, ID = 1, outdirectory = "./"):
   npl_x_test = np.linspace(np.min(npa_x), np.max(npa_x), 100)
   #df_z = pandas.DataFrame({'z':npa_z})
   npa_z_corr = [(z - lr_fit.predict(x))[0] for x,z in zip(npa_x, npa_z)]
@@ -159,12 +159,12 @@ def plot_fit(npa_x, npa_z, lr_fit, ID = 1):
   sb3.plot(result[0], result[1], 'r-')
   fitbox = FormFitBox(gaussians_param, df_z_corr['z'])
   sb3.text(df_z_corr['z'].min(), 0.9*i_count.max(), fitbox, horizontalalignment='left')
-  fig.savefig("marble_" + str(ID) + ".pdf",bbox_inches = "tight")
+  fig.savefig(outdirectory + "/marble_" + str(ID) + ".pdf",bbox_inches = "tight")
   plt.close()
-  print("   ...plot saved in marble_" + str(ID) + ".pdf")
+  print("   ...plot saved in marble_" + outdirectory + "/marble_" + str(ID) + ".pdf")
   return gaussians_param[2]
   
-def plot_other_marble_file(other_marble_file):
+def plot_other_marble_file(other_marble_file, outdirectory = "./"):
   sb_plot_marble = []
   plt.subplots_adjust(left=0.01, bottom=0.1, right=0.99, top=0.99, wspace=0.2, hspace=0.2)
   binsize = 5
@@ -216,7 +216,7 @@ def plot_other_marble_file(other_marble_file):
     sb_plot_marble[-1].set_ylabel("Count")
     sb_plot_marble[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_marble[-1].set_title(plot_title)
-    fig.savefig(name)
+    fig.savefig(outdirectory + "/" + name)
   plt.close()
-  print("   ...plot saved in other_marble.pdf")
+  print("   ...plot saved in " + outdirectory + "/" + name)
     

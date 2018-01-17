@@ -9,7 +9,6 @@ from scipy.optimize import leastsq
 import re
 
 def cut(xz, myrange):
-
   if type(xz) is pandas.DataFrame:
     if len(xz) == 0:
       return xz
@@ -33,6 +32,7 @@ def cut(xz, myrange):
       if len(xz) == 2:
         cut_xz = [[],[]]
         np_xz = np.array(xz[1])
+        print(np_xz.mean(),math.sqrt(np_xz.var()))
         for i in range(0,len(xz[0])):
           if not abs(np_xz.mean()-xz[1][i]) > myrange[0]*math.sqrt(np_xz.var()):
             cut_xz[1].append(xz[1][i])

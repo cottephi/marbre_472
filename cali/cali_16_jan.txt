@@ -1,0 +1,3 @@
+MARBLE ../data/cali/jan_2018/16_jan/30%intensity/marble*
+#CALLE ../data/cali/jan_2018/11_jan/calle*
+MARBLE_OTHER ../data/cali/jan_2018/11_jan/marbre*

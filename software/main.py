@@ -99,6 +99,7 @@ def sort_data(lines, cut_file_arg, row = 0):
   cutfile_content = []
   cutx = []
   cutz = []
+  
   if cut_file_arg != "":
     print("  Loading cutfile " + cut_file_arg + "...")
     cutfile_content = load_cuts(cut_file_arg)
@@ -215,10 +216,26 @@ def main(argv):
       
 
   l_datafiles = []
+  outdirectory = "./"
   if os.path.isfile(data_arg):
     l_datafiles.append(data_arg)
+    outdirectory = "./" + os.path.dirname(data_arg).split("data/")[1]
   elif os.path.isdir(data_arg):
+    outdirectory = "./" + data_arg.split("data/")[1]
     l_datafiles = sorted(glob(data_arg + '/*merged*'))
+  print(outdirectory)
+  tmp_outdir = "."
+  for direc in outdirectory.split("/"):
+    if direc == "" or direc == ".":
+      continue
+    tmp_outdir = tmp_outdir + "/" + direc
+    if not os.path.isdir(tmp_outdir):
+      if os.path.isfile(tmp_outdir):
+        print("ERROR: needs to create output directiry ",tmp_outdir," but file with same name already exists")
+        exit(1)
+      print("Creating output directory ",tmp_outdir,"...")
+      os.mkdir(tmp_outdir)
+    
   row = len(l_datafiles)
   l_l_cutdata = []
   l_l_raw_data = []
@@ -240,14 +257,12 @@ def main(argv):
     if opt_marble_fit_file:
       print(" Found specified marble file " + marble_fit_file_arg)
       l_marble_file = [marble_fit_file_arg]
-    if l_other_marble_file != "":
-      plot_other_marble_file(l_other_marble_file)
     if l_marble_file != []:
       print(" Correcting row " + str(i+1) + " with marble...")
       if i == 0:
-        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_calle_file)
+        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_calle_file, outdirectory)
       else:
-        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, [])
+        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, [], outdirectory)
       print(" ...done")
       print("")
     l_l_cutdata = l_l_cutdata + tmp_l_l_cut_data
@@ -255,9 +270,11 @@ def main(argv):
       col = len(l_l_cutdata)
       
       
+  if l_other_marble_file != "":
+    plot_other_marble_file(l_other_marble_file, outdirectory)
   print("Data has ",row," rows and ",col," columns")
   print("Plotting raw data...")
-  plot_holes(l_l_raw_data, row, col, "raw_")#, ["raw " + ti for ti in title])
+  plot_holes(l_l_raw_data, row, col, "raw_", outdirectory)#, ["raw " + ti for ti in title])
   if opt_is_test:
     plt.show()
     #plt.clf()
@@ -266,14 +283,14 @@ def main(argv):
   print("...done")
   if opt_separate_in_holes:
     print("Analysing data...")
-    my_analysis(l_l_cutdata, row, col, sigmarble)
+    my_analysis(l_l_cutdata, row, col, sigmarble, outdirectory)
     print("done")
   else:
     for l_data in l_l_cutdata:
       l_l_glued_cutdata[0][0] = l_l_cutdata[0][0] + l_data[0]
       l_l_glued_cutdata[0][1] = l_l_cutdata[0][1] + l_data[1]
     print("Analysing non-separated data...")
-    my_analysis(l_l_glued_cutdata,1,1, sigmarble)
+    my_analysis(l_l_glued_cutdata,1,1, sigmarble, outdirectory)
     print("...done")
   
   #plt.show()

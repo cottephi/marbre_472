@@ -4,6 +4,7 @@ from sortedcontainers import SortedDict
 import math
 from sklearn import linear_model
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as PathEffects
 import matplotlib
 import pandas
 import scipy
@@ -12,7 +13,7 @@ import matplotlib.ticker as tk
 import itertools as it
 from toolbox import *
 
-def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0):
+def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, outdirectory = "./"):
   int_nrow, int_ncol = row, col #GetNcolNrow(l_l_cut_data)
   sb_plot_data = [[],[]]
   fig = plt.figure(1,figsize=(18*col, 18*row))
@@ -66,23 +67,27 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0):
     else:
       inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
       sb_plot_data[1].append(plt.Subplot(fig, inner[0]))
-      
-    sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize=12*col)
-    sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize=12*col)
-    sb_plot_data[1][i].set_ylabel('count', fontsize=12*col)
-    sb_plot_data[1][i].tick_params(axis='both', which='major', labelsize=8*col)
     i_count_sup, binned_z , _ = sb_plot_data[1][i].hist(df_z_sup['z'], bins=nbin_sup, range = [plot_range_sup[0],plot_range_sup[1]], color = plot_color)
+    y1, y2 = sb_plot_data[1][i].get_window_extent().get_points()[:, 1]
+    yscale = (y2-y1)/(1.1*i_count_sup.max())
+    #fontsize = 2*yscale
+    fontsize = 12
+    print(fontsize)
+    sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize = fontsize)
+    sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize = fontsize)
+    sb_plot_data[1][i].set_ylabel('count', fontsize = fontsize)
+    sb_plot_data[1][i].tick_params(axis='both', which='major', labelsize = fontsize)
     sb_plot_data[1][i].set_ylim([0,1.1*i_count_sup.max()])
     binned_z = binned_z[:-1]
     Max = find_local_max(i_count_sup.copy(),np.array(binned_z.copy()), binsize)
     if len(Max) == 0:
-      Max = [1200,1140]
+      Max = [1140,1070]
     if len(Max) == 1:
       Max.append(Max[0]-60)
     #possible_maximums = [ [z1,z2] for [z1,z2] in list(it.permutations(Max,2)) if z1 > z2 and z1-z2 < 90 and z1-z2 > 40]
     possible_maximums = [ z for z in Max if (z < Max[0] and Max[0]-z < 90 and Max[0]-z > 40) or z == Max[0] ]
     if len(possible_maximums) == 0:
-      possible_maximums.append([1200,1140])
+      possible_maximums.append([1140,1070])
     
     print("   fitting data...")
     
@@ -90,23 +95,24 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0):
     
     for j in range(0,len(thick_sigmathick_rim_sigmarim)):
       thick_sigmathick_rim_sigmarim[j].append(tmp_thick_sigmathick_rim_sigmarim[j])
-
-    sb_plot_data[1][i].plot(fitted_func1[0], fitted_func1[1], 'r-')
+    if len(fitted_func1) != 0:
+      sb_plot_data[1][i].plot(fitted_func1[0], fitted_func1[1], 'r-', linewidth = 3)
     if len(fitted_func2) != 0:
-      sb_plot_data[1][i].plot(fitted_func2[0], fitted_func2[1], 'r-')
+      sb_plot_data[1][i].plot(fitted_func2[0], fitted_func2[1], 'r-', linewidth = 3)
     statbox = FormStatBox(df_z_sup['z'])
     fitbox = FormFitBox(gaussians_params, df_z_sup['z'])
     print(fitbox)
-    sb_plot_data[1][i].text(Max[0]*0.77, 0.5*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = 8*col)
+    sb_plot_data[1][i].text(Max[0]*0.77, 0.5*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = fontsize)
     fig.add_subplot(sb_plot_data[1][i])
     for xz in range(0,len(l_l_all_data[k-1])):
       l_l_all_data[k-1][xz] = l_l_all_data[k-1][xz] + l_l_cut_data[i][xz]
     print("")
-  fig.savefig("holes_histo.pdf")
-  plot_holes(l_l_all_data, row, col)
-  plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col)
+  fig.savefig(outdirectory + "/holes_histo.pdf")
+  print("   Holes histograms saved in " + outdirectory + "/holes_histo.pdf")
+  plot_holes(l_l_all_data, row, col, "", outdirectory)
+  plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, outdirectory)
 
-def plot_holes(l_l_all_data, row, col, name = ""):
+def plot_holes(l_l_all_data, row, col, name = "", outdirectory = "./"):
   sb_plot_holes = []
   ID = 2
   if name == "":
@@ -122,23 +128,27 @@ def plot_holes(l_l_all_data, row, col, name = ""):
     if i == row-1:
       sb_plot_holes[i].set_xlabel('x(micrometer)', fontsize=14)
     sb_plot_holes[i].set_ylabel('z(micrometer)', fontsize=12)
-  fig.savefig(name + "holes.pdf")
+  fig.savefig(outdirectory + "/" + name + "holes.pdf")
+  print("   Histo saved in " + outdirectory + "/" + name + "holes.pdf")
   
-def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col):
+def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, outdirectory = "./"):
   thick, sigmathick, FR4, sigmaFR4, Cu, sigmaCu = np.array(thick_sigmathick_rim_sigmarim)
   print("Result : ")
   for i in range(0,len(thick)):
     print(" Hole ",i,": ",thick[i],"+/-",sigmathick[i]," microns thick")
     print("    Cu: ",Cu[i],"+/-",sigmaCu[i]," microns, FR4: ", FR4[i],"+/-",sigmaFR4[i]," microns")
-  plot_2D_map(thick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col)
-  plot_2D_map(FR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col)
-  plot_2D_map(Cu,6,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90)
+  plot_2D_map(thick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
+  plot_2D_map(FR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col, 800, 1300, outdirectory)
+  plot_2D_map(Cu,6,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
   
-def plot_2D_map(z,figID,title, savename, row, col, v0 = 800, v1 = 1300):
+def plot_2D_map(z,figID,title, savename, row, col, v0 = 800, v1 = 1300, outdirectory = "./"):
   fig = plt.figure(figID,figsize=(3*col, 3*row))
   sb_plot_2D_map = fig.add_subplot(111)
-  x = [i%(col)+1 for i in range(0,len(z))]
-  y = [row-(int(i/col)) for i in range(0,len(z))]
+  
+  x = [i%(col)+1 for i in range(0,len(z)) if z[i] != 0]
+  y = [row-(int(i/col)) for i in range(0,len(z)) if z[i] != 0]
+  z = z[z != 0]
+  
   marker_size = good_marker_size(x,y,fig,sb_plot_2D_map)
   p = sb_plot_2D_map.scatter(x,y,c=z, s=marker_size[0]*marker_size[1], marker='.', cmap=cm.plasma, linewidth=0, vmin=v0, vmax=v1)
   #sb_plot_2D_map.axis([min(x)-1., max(x)+1., min(y)-1., max(y)+1.])
@@ -147,9 +157,10 @@ def plot_2D_map(z,figID,title, savename, row, col, v0 = 800, v1 = 1300):
   sb_plot_2D_map.set_title(title)
   for i in range(0,len(z)):
     mytext = str(i+1) + "\n" + str(int(z[i]))
-    sb_plot_2D_map.annotate(mytext,xy=(x[i],y[i]), color='g')
+    sb_plot_2D_map.annotate(mytext,xy=(x[i],y[i]), color='black', path_effects=[PathEffects.withStroke(linewidth=3, foreground="w")])
   fig.colorbar(p)
-  fig.savefig(savename)
+  fig.savefig(outdirectory + "/" + savename)
+  print("   2D map saved in " + outdirectory + "/" + savename)
   
 def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
   thick_sigmathick_rim_sigmarim = []
@@ -170,7 +181,10 @@ def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
     thick_sigmathick_rim_sigmarim.append(0)
     return thick_sigmathick_rim_sigmarim,[],[],[]
   z1 = gaussians_param1[1]
-  sigma1 = math.sqrt(gaussians_param1[2]**2-sigmarble**2)
+  if gaussians_param1[2] < sigmarble:
+    sigma1 = gaussians_param1[2]
+  else:
+    sigma1 = math.sqrt(gaussians_param1[2]**2-sigmarble**2)
   rsquares = []
   fitted_func = []
   gaussians_params = []
@@ -210,7 +224,10 @@ def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
     gaussians_param2 = gaussians_params[best_fit]
     print("    best fit : ",gaussians_param2[1]," with R**2=",max(rsquares))
     z2 = gaussians_param2[1]
-    sigma2 = math.sqrt(gaussians_param2[2]**2-sigmarble**2)
+    if gaussians_param2[2] < sigmarble:
+      sigma1 = gaussians_param2[2]
+    else:
+      sigma2 = math.sqrt(gaussians_param2[2]**2-sigmarble**2)
     thick_sigmathick_rim_sigmarim.append(z1)
     thick_sigmathick_rim_sigmarim.append(sigma1)
     thick_sigmathick_rim_sigmarim.append(2*z2-z1)
