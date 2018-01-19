@@ -12,67 +12,44 @@ def cut(xz, myrange):
   if type(xz) is pandas.DataFrame:
     if len(xz) == 0:
       return xz
-    cut_xz = pandas.DataFrame(columns=list(xz))
     if len(myrange) == 1:
-      for i in range(0,len(xz)):
-        if not abs(xz['z'].mean()-xz.loc[i,'z']) > myrange[0]*math.sqrt(xz['z'].var()):
-          cut_xz.loc[len(cut_xz)] = xz.loc[i]
+      return pandas.DataFrame({'z':[ z for z in xz['z'] if not abs(xz['z'].mean()-z) > myrange[0]*math.sqrt(xz['z'].var()) ]})
     elif len(myrange) == 2:
-      for i in range(0,len(xz)):
-        if xz.loc[i,'z'] < myrange[1] and xz.loc[i,'z'] > myrange[0]:
-          cut_xz.loc[len(cut_xz)] = xz.loc[i]
+      return pandas.DataFrame({'z':[ z for z in xz['z'] if z > myrange[0] and z < myrange[1] ]})
     else:
-      cut_xz = xz
-    return cut_xz
+     return xz
   
   elif type(xz) is list:
     if len(xz) == 0:
       return xz
     if len(myrange) == 1:
       if len(xz) == 2:
-        cut_xz = [[],[]]
         np_xz = np.array(xz[1])
-        print(np_xz.mean(),math.sqrt(np_xz.var()))
-        for i in range(0,len(xz[0])):
-          if not abs(np_xz.mean()-xz[1][i]) > myrange[0]*math.sqrt(np_xz.var()):
-            cut_xz[1].append(xz[1][i])
-            cut_xz[0].append(xz[0][i])
-        return cut_xz
+        lx,lz = zip(*[ [x,z] for x,z in zip(xz[0],xz[1]) if not abs(np_xz.mean()-z) > myrange[0]*math.sqrt(np_xz.var()) ])
+        return [list(lx),list(lz)]
       else:
-        cut_z = []
         np_z = np.array(xz)
-        for i in range(0,len(xz)):
-          if not abs(np_z.mean()-xz[i]) > myrange[0]*math.sqrt(np_z.var()):
-            cut_z.append(xz[i])
-        return cut_z
+        return [ z for z in xz if not abs(np_z.mean()-z) > myrange[0]*math.sqrt(np_z.var()) ]
     elif len(myrange) == 2:
       if len(xz) == 2:
-        cut_xz = [[],[]]
-        for i in range(0,len(xz[0])):
-          if xz[1][i] < myrange[1] and xz[1][i] > myrange[0]:
-            cut_xz[1].append(xz[1][i])
-            cut_xz[0].append(xz[0][i])
-        return cut_xz
+        lx,lz = zip(*[ [x,z] for x,z in zip(xz[0],xz[1]) if z > myrange[0] and z < myrange[1] ])
+        return [list(lx),list(lz)]
       else:
-        cut_z = []
         np_z = np.array(xz)
-        for i in range(0,len(xz)):
-          if xz[i] < myrange[1] and xz[i] > myrange[0]:
-            cut_z.append(xz[i])
-        return cut_z
+        return [ z for z in xz if z > myrange[0] and z < myrange[1] ]
     else:
       return xz
   
 def FormStatBox(df_z_selected):
   return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),0)) + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),2))
   
-def FormFitBox(param, df_z_selected):
+def FormFitBox(param, df_z_selected, chisquare):
   if len(param) == 0:
     return 'fit failed'
   if len(param) == 3:
-    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n Int=' + str(round(Decimal(param[0]),2)) + '\n mean=' + str(round(Decimal(param[1]),2)) + '\n sigma=' + str(abs(round(Decimal(param[2]),2)))
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n Int=' + str(round(Decimal(param[0]),2)) + '\n mean=' + str(round(Decimal(param[1]),2)) + '\n sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n  chi2=' + str(abs(round(Decimal(chisquare[0]),2)))
   elif len(param) == 6:
-    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),2)) + '\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),2)) + '\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2)))
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),2)) + '\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n  chi2=' + str(abs(round(Decimal(chisquare[0]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),2)) + '\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2))) + '\n  chi2=' + str(abs(round(Decimal(chisquare[1]),2)))
   else:
     print("ERROR: unknown number of parameter in FormFitBox")
     exit(1)
@@ -99,21 +76,23 @@ def singlegaussfit(x,proba,par, range_p = []):
     p,cov,infodict,mesg,ier = leastsq(e_single_gauss_fit, par[:]+range_p[:], args=(x, proba), maxfev=100000, full_output=1)
   xxx = np.arange(min(x),max(x),x[1]-x[0])
   ccc = single_gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelength
+  chisquare = np.array([ (c-pro)*(c-pro) for c,pro in zip(ccc,proba) ]).sum()/proba.sum()
   ss_err = (infodict['fvec']**2).sum()
   ss_tot = ((proba-proba.mean())**2).sum()
   rsquare = 1-(ss_err/ss_tot)
-  print("     Mean found : ",p[1]," R**2=",rsquare)
-  return p[:len(p)-len(range_p)],rsquare, [xxx,ccc]
+  print("     Mean found : ",p[1]," chi**2=",chisquare)
+  return p[:len(p)-len(range_p)],chisquare, [xxx,ccc]
 
 def e_single_gauss_fit(p, x, y):
   range_p = p[3:]
+  binsize = x[2]-x[1]
   if len(range_p) != 2*(len(p)-len(range_p)) and len(range_p) != 0:
     print("ERROR: should have twice as many ranges than parameter in singlegaussfit")
     exit(1)
   #if p[0] > range_p[0] and p[0] < range_p[1] and p[1] > range_p[2] and p[1] < range_p[3] and p[2] > range_p[4] and p[2] < range_p[5] and p[3] > range_p[6] and p[3] < range_p[7] and p[4] > range_p[8] and p[4] < range_p[9] and p[5] > range_p[10] and p[5] < range_p[11]:
   if len(range_p) != 0:
     if p[2] > range_p[4] and p[2] < range_p[5]:
-      return single_gauss_fit(p,x) -y
+      return single_gauss_fit(p,x+binsize/2) -y
     else:
       ret = [1e6 for i in [None]*(len(p))]
       return ret
@@ -140,12 +119,13 @@ def doublegaussfit(x,proba,par, range_p = []):
 
 def e_double_gauss_fit(p, x, y):
   range_p = p[6:]
+  binsize = x[2]-x[1]
   if len(range_p) != 2*(len(p)-len(range_p)):
     print("ERROR: should have twice as many ranges than parameter in doublegaussfit")
     exit(1)
   #if p[0] > range_p[0] and p[0] < range_p[1] and p[1] > range_p[2] and p[1] < range_p[3] and p[2] > range_p[4] and p[2] < range_p[5] and p[3] > range_p[6] and p[3] < range_p[7] and p[4] > range_p[8] and p[4] < range_p[9] and p[5] > range_p[10] and p[5] < range_p[11]:
   if p[2] > range_p[4] and p[2] < range_p[5] and p[5] > range_p[10] and p[5] < range_p[11]:
-    return double_gauss_fit(p,x) -y
+    return double_gauss_fit(p,x+binsize/2) -y
   else:
     ret = [1e6 for i in [None]*(len(p))]
     return ret

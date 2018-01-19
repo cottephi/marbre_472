@@ -271,7 +271,7 @@ def main(argv):
       
       
   if l_other_marble_file != "":
-    plot_other_marble_file(l_other_marble_file, outdirectory)
+    sigmaCopperLaser = plot_other_marble_file(l_other_marble_file, outdirectory)
   print("Data has ",row," rows and ",col," columns")
   print("Plotting raw data...")
   plot_holes(l_l_raw_data, row, col, "raw_", outdirectory)#, ["raw " + ti for ti in title])
@@ -283,14 +283,14 @@ def main(argv):
   print("...done")
   if opt_separate_in_holes:
     print("Analysing data...")
-    my_analysis(l_l_cutdata, row, col, sigmarble, outdirectory)
+    my_analysis(l_l_cutdata, row, col, sigmarble, sigmaCopperLaser, outdirectory)
     print("done")
   else:
     for l_data in l_l_cutdata:
       l_l_glued_cutdata[0][0] = l_l_cutdata[0][0] + l_data[0]
       l_l_glued_cutdata[0][1] = l_l_cutdata[0][1] + l_data[1]
     print("Analysing non-separated data...")
-    my_analysis(l_l_glued_cutdata,1,1, sigmarble, outdirectory)
+    my_analysis(l_l_glued_cutdata,1,1, sigmarble, sigmaCopperLaser, outdirectory)
     print("...done")
   
   #plt.show()

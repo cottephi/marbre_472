@@ -96,7 +96,7 @@ def plot_calle(file_calle_file, outdirectory = "./"):
       print("   fit failed, parameter too high :'(")
       gaussians_param = []
     sb_plot_calle[-1].plot(result[0], result[1], 'r-')
-    fitbox = FormFitBox(gaussians_param, df_z['z'])
+    fitbox = FormFitBox(gaussians_param, df_z['z'], [rsquare])
     sb_plot_calle[-1].text(df_z['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 36)
     sb_plot_calle[-1].set_xlabel("Height (micrometer)")
     sb_plot_calle[-1].set_ylabel("Count")
@@ -118,10 +118,8 @@ def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./"):
   print("   Applying fit to data...")
   if not l_l_cut_data is None:
     for l_cut_data in l_l_cut_data:
-      l_l_corrected_data.append([[],[]])
-      for x,z in zip(l_cut_data[0],l_cut_data[1]):
-        l_l_corrected_data[-1][0].append(x)
-        l_l_corrected_data[-1][1].append((z - lr_fit.predict(x))[0])
+      lx,lz = zip(*[ [x,(z - lr_fit.predict(x))[0]] for x,z in zip(l_cut_data[0],l_cut_data[1]) ])
+      l_l_corrected_data.append([list(lx),list(lz)])
   print("   plotting marble data...")
   sigmarble = plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID, outdirectory)
   return [l_l_corrected_data, lr_fit, sigmarble]
@@ -157,7 +155,7 @@ def plot_fit(npa_x, npa_z, lr_fit, ID = 1, outdirectory = "./"):
   fit_par = [len(df_z_corr), 0, math.sqrt(float(df_z_corr.var()))]
   gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
   sb3.plot(result[0], result[1], 'r-')
-  fitbox = FormFitBox(gaussians_param, df_z_corr['z'])
+  fitbox = FormFitBox(gaussians_param, df_z_corr['z'], [rsquare])
   sb3.text(df_z_corr['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 24, color = 'r')
   fig.savefig(outdirectory + "/marble_" + str(ID) + ".pdf",bbox_inches = "tight")
   plt.close()
@@ -168,6 +166,7 @@ def plot_other_marble_file(other_marble_file, outdirectory = "./"):
   sb_plot_marble = []
   plt.subplots_adjust(left=0.01, bottom=0.1, right=0.99, top=0.99, wspace=0.2, hspace=0.2)
   binsize = 5
+  sigma = 0
   for i in range(0,len(other_marble_file)):
     fig = plt.figure(1000+i,figsize=(5, 8))
     File = other_marble_file[i]
@@ -210,7 +209,9 @@ def plot_other_marble_file(other_marble_file, outdirectory = "./"):
     fit_par = [len(df_z), maxz, math.sqrt(float(df_z.var()))]
     gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
     sb_plot_marble[-1].plot(result[0], result[1], 'r-')
-    fitbox = FormFitBox(gaussians_param, df_z['z'])
+    fitbox = FormFitBox(gaussians_param, df_z['z'], [rsquare])
+    if "laser_cuivre_immobile" in name:
+      sigma = gaussians_param[2]
     sb_plot_marble[-1].text(df_z['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 36, color = 'r')
     sb_plot_marble[-1].set_xlabel("Height (micrometer)")
     sb_plot_marble[-1].set_ylabel("Count")
@@ -219,4 +220,5 @@ def plot_other_marble_file(other_marble_file, outdirectory = "./"):
     fig.savefig(outdirectory + "/" + name)
     print("   ...plot saved in " + outdirectory + "/" + name)
   plt.close()
+  return sigma
     
