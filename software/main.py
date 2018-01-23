@@ -32,7 +32,7 @@ def load_cali(my_cali_file):
   califile.close()
   l_marble_file = []
   l_calle_file = []
-  l_marble_other_file = []
+  l_other_marble_file = []
   for cal in cali:
     cal = cal.split("\n")[0]
     if cal[0] == "#":
@@ -56,15 +56,15 @@ def load_cali(my_cali_file):
         exit(1)
     elif cal.split(" ")[0] == "MARBLE_OTHER":
       if glob(cal.split(" ")[1]):
-        l_marble_other_file = sorted(glob(cal.split(" ")[1]))
-        print("   Found other marble files :", l_marble_other_file)
+        l_other_marble_file = sorted(glob(cal.split(" ")[1]))
+        print("   Found other marble files :", l_other_marble_file)
       else:
         print("ERROR : could not find other marble files")
         exit(1)
     else:
       print("Load_cali ERROR : bad cali format " + cal + ". ")
       exit(1)
-  return[l_marble_file, l_calle_file, l_marble_other_file]
+  return[l_marble_file, l_calle_file, l_other_marble_file]
   
 def load_cuts(my_cut_file):
   cutfile = open(my_cut_file,"r")
@@ -141,7 +141,7 @@ def sort_data(lines, cut_file_arg, row = 0):
   ################for line in lines:#####################
   if not do_cuts:
     cutdata.append(rawdata)
-  cutdata = [x for x in cutdata if x != []]
+  cutdata = [ xz for xz in cutdata if xz != [[],[]] ]
   return [cutdata, rawdata]
   
 def main(argv):
@@ -160,7 +160,8 @@ def main(argv):
   
   l_marble_file = []
   l_calle_file = []
-  l_marble_other_file = []
+  l_other_marble_file = []
+  sigmaCopperLaser = 0
   
   #Read the arguments
   try:
@@ -270,8 +271,9 @@ def main(argv):
       col = len(l_l_cutdata)
       
       
-  if l_other_marble_file != "":
+  if l_other_marble_file != []:
     sigmaCopperLaser = plot_other_marble_file(l_other_marble_file, outdirectory)
+    
   print("Data has ",row," rows and ",col," columns")
   print("Plotting raw data...")
   plot_holes(l_l_raw_data, row, col, "raw_", outdirectory)#, ["raw " + ti for ti in title])

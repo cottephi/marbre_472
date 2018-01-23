@@ -68,6 +68,7 @@ def FormFitBox(param, df_z_selected, chisquare):
   #sb.plot(npl_x_plot, npa_result)
   
 def singlegaussfit(x,proba,par, range_p = []):
+  print(par,x,proba,range_p)
   out = []
   print("    Fit attempt around possible mean ",par[1],"...")
   if range_p == []:
@@ -87,7 +88,7 @@ def e_single_gauss_fit(p, x, y):
   range_p = p[3:]
   binsize = x[2]-x[1]
   if len(range_p) != 2*(len(p)-len(range_p)) and len(range_p) != 0:
-    print("ERROR: should have twice as many ranges than parameter in singlegaussfit")
+    print("ERROR: should have twice as many ranges than parameters in singlegaussfit")
     exit(1)
   #if p[0] > range_p[0] and p[0] < range_p[1] and p[1] > range_p[2] and p[1] < range_p[3] and p[2] > range_p[4] and p[2] < range_p[5] and p[3] > range_p[6] and p[3] < range_p[7] and p[4] > range_p[8] and p[4] < range_p[9] and p[5] > range_p[10] and p[5] < range_p[11]:
   if len(range_p) != 0:

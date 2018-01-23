@@ -23,29 +23,32 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
   l_l_all_data = []
   k = 0
   thick_sigmathick_rim_sigmarim = [[],[],[],[],[],[],[],[],[]]
+  fontsize = 2.5
+  if row == 1:
+    fontsize = 40
   for i in range(0,len(l_l_cut_data)):
     print("   Analysing hole ",i+1,"...")
-    skip_inf = True
+    #skip_inf = True
     plot_color = 'b'
     plot_range_sup = [900,1300]
-    plot_range_inf = [-50,50]
+    #plot_range_inf = [-50,50]
     underflow = len([z for z in l_l_cut_data[i][1] if z < plot_range_sup[0]])
     overflow = len([z for z in l_l_cut_data[i][1] if z > plot_range_sup[1]])
-    #if overflow > len(l_l_cut_data[i])/4:
-      #plot_range_sup[1]=1300
-      #plot_color = 'g'
-    #if underflow > len(l_l_cut_data[i])/4:
-      #plot_range_sup[0]=800
-      #plot_color = 'g'
+    if overflow > len(l_l_cut_data[i])/4:
+      plot_range_sup[1]=1300
+      plot_color = 'g'
+    if underflow > len(l_l_cut_data[i])/4:
+      plot_range_sup[0]=600
+      plot_color = 'g'
     binsize = 5 #microns
     nbin_sup=int((plot_range_sup[1]-plot_range_sup[0])/binsize)
-    nbin_inf=int((plot_range_inf[1]-plot_range_inf[0])/binsize)
+    #nbin_inf=int((plot_range_inf[1]-plot_range_inf[0])/binsize)
     if i % col == 0:
       l_l_all_data.append(l_l_cut_data[i].copy())
       k = k + 1
-    lzinf = [ z for z in l_l_cut_data[i][1] if z > plot_range_inf[0] and z < plot_range_inf[1] ]
+    #lzinf = [ z for z in l_l_cut_data[i][1] if z > plot_range_inf[0] and z < plot_range_inf[1] ]
     lzsup = [ z for z in l_l_cut_data[i][1] if z > plot_range_sup[0] and z < plot_range_sup[1] ]
-    df_z_inf = pandas.DataFrame({'z':lzinf})
+    #df_z_inf = pandas.DataFrame({'z':lzinf})
     df_z_sup = pandas.DataFrame({'z':lzsup})
     #for j in range(0,len(l_l_cut_data[i][0])):
       #x = l_l_cut_data[i][0][j]
@@ -54,25 +57,24 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
         #df_z_sup.loc[len(df_z_sup)] = z
       #if z > plot_range_inf[0] and z < plot_range_inf[1]:
         #df_z_inf.loc[len(df_z_inf)] = z
-    df_z_inf = cut(df_z_inf, [5])
+    #df_z_inf = cut(df_z_inf, [5])
     df_z_sup = cut(df_z_sup, [5])
-    if not skip_inf:
-      inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
-      sb_plot_data[0].append(plt.Subplot(fig, inner[0]))
-      sb_plot_data[0][i].set_title('hole ' + str(i+1) + ' Marble', fontsize=14)
-      sb_plot_data[0][i].set_xlabel('z(micrometer)', fontsize=14)
-      i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]], color = 'b')
-      statbox = FormStatBox(df_z_inf['z'])
-      sb_plot_data[0][i].text(plot_range_inf[0], 0.9*i_count_inf.max(), statbox,horizontalalignment='left')
-      fig.add_subplot(sb_plot_data[0][i])
-      sb_plot_data[1].append(plt.Subplot(fig, inner[1]))
-    else:
-      inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
-      sb_plot_data[1].append(plt.Subplot(fig, outer[i]))
+    #if not skip_inf:
+      #inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
+      #sb_plot_data[0].append(plt.Subplot(fig, inner[0]))
+      #sb_plot_data[0][i].set_title('hole ' + str(i+1) + ' Marble', fontsize=14)
+      #sb_plot_data[0][i].set_xlabel('z(micrometer)', fontsize=14)
+      #i_count_inf, _ , _ = sb_plot_data[0][i].hist(df_z_inf['z'], bins=nbin_inf, range = [plot_range_inf[0],plot_range_inf[1]], color = 'b')
+      #statbox = FormStatBox(df_z_inf['z'])
+      #sb_plot_data[0][i].text(plot_range_inf[0], 0.9*i_count_inf.max(), statbox,horizontalalignment='left')
+      #fig.add_subplot(sb_plot_data[0][i])
+      #sb_plot_data[1].append(plt.Subplot(fig, inner[1]))
+    #else:
+    inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
+    sb_plot_data[1].append(plt.Subplot(fig, outer[i]))
     i_count_sup, binned_z , _ = sb_plot_data[1][i].hist(df_z_sup['z'], bins=nbin_sup, range = [plot_range_sup[0],plot_range_sup[1]], color = plot_color)
     y1, y2 = sb_plot_data[1][i].get_window_extent().get_points()[:, 1]
     yscale = (y2-y1)/(1.1*i_count_sup.max())
-    fontsize = 2.5
     #fontsize = 5
     sb_plot_data[1][i].set_title('hole  ' + str(i+1) + ' LEM', fontsize = 1.2*fontsize)
     sb_plot_data[1][i].set_xlabel('z(micrometer)', fontsize = fontsize, labelpad = .1)

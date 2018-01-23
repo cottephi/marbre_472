@@ -20,21 +20,27 @@ def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = [], ou
   content_marble_file = marble_file.readlines()
   marble_file.close()
   #beginning of measurment usually is crap
-  startcut = -900000
+  #startcut = -900000
   #remove header line
   if "Distance" in content_marble_file[0]:
     content_marble_file = content_marble_file[1:]
   #read the file
+  nx = 0
+  do_fit = True
   for line in content_marble_file:
-    if float(line.split("\n")[0].split(";")[4])<startcut:
-      continue
-    l_marble_data[0].append(float(line.split("\n")[0].split(";")[4]))
+    x = float(line.split("\n")[0].split(";")[4])
+   # if x < startcut:
+    #  continue
+    if not x in l_marble_data[0]:
+      nx = nx + 1
+    l_marble_data[0].append(x)
     l_marble_data[1].append(float(line.split("\n")[0].split(";")[0]))
+  if nx < 10:
+    do_fit = False
   #remove the marble data too far from the mean
-
-  l_marble_data = cut(l_marble_data,[2])
-  
-  l_l_cut_data, lr_fit, sigmarble = marble_fit(l_marble_data, l_l_cut_data, ID, outdirectory)
+  if do_fit:
+    l_marble_data = cut(l_marble_data,[2])
+  l_l_cut_data, lr_fit, sigmarble = marble_fit(l_marble_data, l_l_cut_data, ID, outdirectory, do_fit)
   if len(file_calle_file) != 0:
     print("  Plotting calle data...")
     plot_calle(file_calle_file, outdirectory)
@@ -107,22 +113,29 @@ def plot_calle(file_calle_file, outdirectory = "./"):
     print("   ...plot saved in " + outdirectory + "/calle_" + str(plot_title) + ".pdf")
 
 
-def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./"):
+def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./", do_fit = True):
+  l_l_corrected_data = []
   npa_marble_x = np.array(l_marble_data[0])
   npa_marble_z = np.array(l_marble_data[1])
-  lr_fit = linear_model.LinearRegression()
-  print("   Computing marble slope...")
-  lr_fit.fit(npa_marble_x[:,np.newaxis], npa_marble_z)
-  print('  ...z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2)))
-  l_l_corrected_data = []
-  print("   Applying fit to data...")
-  if not l_l_cut_data is None:
-    for l_cut_data in l_l_cut_data:
-      lx,lz = zip(*[ [x,(z - lr_fit.predict(x))[0]] for x,z in zip(l_cut_data[0],l_cut_data[1]) ])
-      l_l_corrected_data.append([list(lx),list(lz)])
-  print("   plotting marble data...")
-  sigmarble = plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID, outdirectory)
-  return [l_l_corrected_data, lr_fit, sigmarble]
+  if do_fit:
+    lr_fit = linear_model.LinearRegression()
+    print("   Computing marble slope...")
+    lr_fit.fit(npa_marble_x[:,np.newaxis], npa_marble_z)
+    print('  ...z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2)))
+    print("   substracting marble from data...")
+    if not l_l_cut_data is None:
+      for l_cut_data in l_l_cut_data:
+        lx,lz = zip(*[ [x,(z - lr_fit.predict(x))[0]] for x,z in zip(l_cut_data[0],l_cut_data[1]) ])
+        l_l_corrected_data.append([list(lx),list(lz)])
+    print("   plotting marble data...")
+    sigmarble = plot_fit(npa_marble_x, npa_marble_z, lr_fit, ID, outdirectory)
+    return [l_l_corrected_data, lr_fit, sigmarble]
+  else:
+    if not l_l_cut_data is None:
+      for l_cut_data in l_l_cut_data:
+        lx,lz = zip(*[ [x,(z - npa_marble_z.mean())] for x,z in zip(l_cut_data[0],l_cut_data[1]) ])
+        l_l_corrected_data.append([list(lx),list(lz)])
+    return [l_l_corrected_data, None, 0]
 
 
 def plot_fit(npa_x, npa_z, lr_fit, ID = 1, outdirectory = "./"):
