@@ -108,9 +108,9 @@ def plot_calle(file_calle_file, outdirectory = "./"):
     sb_plot_calle[-1].set_ylabel("Count")
     sb_plot_calle[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_calle[-1].set_title("Height of " + plot_title + " reference")
-    fig.savefig(outdirectory + "/calle_" + str(plot_title) + ".pdf")
+    fig.savefig(outdirectory + "calle_" + str(plot_title) + ".pdf")
     plt.close()
-    print("   ...plot saved in " + outdirectory + "/calle_" + str(plot_title) + ".pdf")
+    print("   ...plot saved in " + outdirectory + "calle_" + str(plot_title) + ".pdf")
 
 
 def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./", do_fit = True):
@@ -132,6 +132,7 @@ def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./", 
     return [l_l_corrected_data, lr_fit, sigmarble]
   else:
     if not l_l_cut_data is None:
+      print("   substracting marble from data...")
       for l_cut_data in l_l_cut_data:
         lx,lz = zip(*[ [x,(z - npa_marble_z.mean())] for x,z in zip(l_cut_data[0],l_cut_data[1]) ])
         l_l_corrected_data.append([list(lx),list(lz)])
@@ -170,9 +171,9 @@ def plot_fit(npa_x, npa_z, lr_fit, ID = 1, outdirectory = "./"):
   sb3.plot(result[0], result[1], 'r-')
   fitbox = FormFitBox(gaussians_param, df_z_corr['z'], [rsquare])
   sb3.text(df_z_corr['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 24, color = 'r')
-  fig.savefig(outdirectory + "/marble_" + str(ID) + ".pdf",bbox_inches = "tight")
+  fig.savefig(outdirectory + "marble_" + str(ID) + ".pdf",bbox_inches = "tight")
   plt.close()
-  print("   ...plot saved in marble_" + outdirectory + "/marble_" + str(ID) + ".pdf")
+  print("   ...plot saved in marble_" + outdirectory + "marble_" + str(ID) + ".pdf")
   return gaussians_param[2]
   
 def plot_other_marble_file(other_marble_file, outdirectory = "./"):
@@ -230,8 +231,8 @@ def plot_other_marble_file(other_marble_file, outdirectory = "./"):
     sb_plot_marble[-1].set_ylabel("Count")
     sb_plot_marble[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
     sb_plot_marble[-1].set_title(plot_title)
-    fig.savefig(outdirectory + "/" + name)
-    print("   ...plot saved in " + outdirectory + "/" + name)
+    fig.savefig(outdirectory + name)
+    print("   ...plot saved in " + outdirectory + name)
   plt.close()
   return sigma
     

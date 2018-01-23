@@ -32,22 +32,25 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
     plot_color = 'b'
     plot_range_sup = [900,1300]
     #plot_range_inf = [-50,50]
-    underflow = len([z for z in l_l_cut_data[i][1] if z < plot_range_sup[0]])
-    overflow = len([z for z in l_l_cut_data[i][1] if z > plot_range_sup[1]])
-    if overflow > len(l_l_cut_data[i])/4:
-      plot_range_sup[1]=1300
-      plot_color = 'g'
-    if underflow > len(l_l_cut_data[i])/4:
-      plot_range_sup[0]=600
-      plot_color = 'g'
     binsize = 5 #microns
-    nbin_sup=int((plot_range_sup[1]-plot_range_sup[0])/binsize)
-    #nbin_inf=int((plot_range_inf[1]-plot_range_inf[0])/binsize)
     if i % col == 0:
       l_l_all_data.append(l_l_cut_data[i].copy())
       k = k + 1
     #lzinf = [ z for z in l_l_cut_data[i][1] if z > plot_range_inf[0] and z < plot_range_inf[1] ]
-    lzsup = [ z for z in l_l_cut_data[i][1] if z > plot_range_sup[0] and z < plot_range_sup[1] ]
+    lzsup = cut(l_l_cut_data[i][1],[5])
+    underflow = len([z for z in lzsup if z < plot_range_sup[0]])
+    overflow = len([z for z in lzsup if z > plot_range_sup[1]])
+    if overflow > len(lzsup)/4:
+      print("Overflow of", overflow, ". Increasing max range to from 1300 to 1600 microns.")
+      plot_range_sup[1]=1600
+      plot_color = 'g'
+    if underflow > len(lzsup)/4:
+      print("Underflow of", underflow, ". Decreasing range from 900 to 600 microns.")
+      plot_range_sup[0]=600
+      plot_color = 'g'
+    nbin_sup=int((plot_range_sup[1]-plot_range_sup[0])/binsize)
+    #nbin_inf=int((plot_range_inf[1]-plot_range_inf[0])/binsize)
+    lzsup = [ z for z in lzsup if z > plot_range_sup[0] and z < plot_range_sup[1] ]
     #df_z_inf = pandas.DataFrame({'z':lzinf})
     df_z_sup = pandas.DataFrame({'z':lzsup})
     #for j in range(0,len(l_l_cut_data[i][0])):
@@ -58,7 +61,8 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
       #if z > plot_range_inf[0] and z < plot_range_inf[1]:
         #df_z_inf.loc[len(df_z_inf)] = z
     #df_z_inf = cut(df_z_inf, [5])
-    df_z_sup = cut(df_z_sup, [5])
+    #df_z_sup = cut(df_z_sup, [5])
+   
     #if not skip_inf:
       #inner = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[i], wspace=0.2, hspace=0.1)
       #sb_plot_data[0].append(plt.Subplot(fig, inner[0]))
@@ -111,8 +115,8 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
     for xz in range(0,len(l_l_all_data[k-1])):
       l_l_all_data[k-1][xz] = l_l_all_data[k-1][xz] + l_l_cut_data[i][xz]
     print("")
-  fig.savefig(outdirectory + "/holes_histo.pdf")
-  print("   Holes histograms saved in " + outdirectory + "/holes_histo.pdf")
+  fig.savefig(outdirectory + "holes_histo.pdf")
+  print("   Holes histograms saved in " + outdirectory + "holes_histo.pdf")
   plot_holes(l_l_all_data, row, col, "", outdirectory)
   plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLaser, outdirectory)
 
@@ -131,8 +135,8 @@ def plot_holes(l_l_all_data, row, col, name = "", outdirectory = "./"):
     if i == row-1:
       sb_plot_holes[i].set_xlabel('x(micrometer)', fontsize=14)
     sb_plot_holes[i].set_ylabel('z(micrometer)', fontsize=12)
-  fig.savefig(outdirectory + "/" + name + "holes.pdf")
-  print("   Histo saved in " + outdirectory + "/" + name + "holes.pdf")
+  fig.savefig(outdirectory + name + "holes.pdf")
+  print("   Histo saved in " + outdirectory + name + "holes.pdf")
   
 def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLaser = 0, outdirectory = "./"):
   thick, sigmathick, FR4, sigmaFR4, Cu, NLem, NFR4, N, sigmarble = np.array(thick_sigmathick_rim_sigmarim)
@@ -166,8 +170,8 @@ def plot_2D_map(z,sigma,figID,title, savename, row, col, v0 = 800, v1 = 1300, ou
     mytext = str(i+1) + "\n" + str(round(Decimal(z[i]),2)) + "+/-" + str(round(Decimal(sigma[i]),4))
     sb_plot_2D_map.annotate(mytext,xy=(x[i]-0.25,y[i]), color='white', path_effects=[PathEffects.withStroke(linewidth=2, foreground="black")])
   fig.colorbar(p)
-  fig.savefig(outdirectory + "/" + savename)
-  print("   2D map saved in " + outdirectory + "/" + savename)
+  fig.savefig(outdirectory + savename)
+  print("   2D map saved in " + outdirectory + savename)
   
 def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
   thick_sigmathick_rim_sigmarim = []

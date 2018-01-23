@@ -220,14 +220,14 @@ def main(argv):
   outdirectory = "./"
   if os.path.isfile(data_arg):
     l_datafiles.append(data_arg)
-    outdirectory = "./" + os.path.dirname(data_arg).split("data/")[1]
+    outdirectory = "./" + data_arg.split("data/")[1]
+    outdirectory = outdirectory.replace(".csv","")
   elif os.path.isdir(data_arg):
     outdirectory = "./" + data_arg.split("data/")[1]
     l_datafiles = sorted(glob(data_arg + '/*merged*'))
-  print(outdirectory)
   tmp_outdir = "."
   for direc in outdirectory.split("/"):
-    if direc == "" or direc == ".":
+    if direc == "" or "." in direc:
       continue
     tmp_outdir = tmp_outdir + "/" + direc
     if not os.path.isdir(tmp_outdir):
@@ -236,7 +236,8 @@ def main(argv):
         exit(1)
       print("Creating output directory ",tmp_outdir,"...")
       os.mkdir(tmp_outdir)
-    
+  outdirectory = outdirectory + "/"
+  
   row = len(l_datafiles)
   l_l_cutdata = []
   l_l_raw_data = []

@@ -68,7 +68,6 @@ def FormFitBox(param, df_z_selected, chisquare):
   #sb.plot(npl_x_plot, npa_result)
   
 def singlegaussfit(x,proba,par, range_p = []):
-  print(par,x,proba,range_p)
   out = []
   print("    Fit attempt around possible mean ",par[1],"...")
   if range_p == []:
