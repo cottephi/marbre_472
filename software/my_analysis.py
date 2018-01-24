@@ -36,18 +36,23 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
     if i % col == 0:
       l_l_all_data.append(l_l_cut_data[i].copy())
       k = k + 1
-    #lzinf = [ z for z in l_l_cut_data[i][1] if z > plot_range_inf[0] and z < plot_range_inf[1] ]
-    lzsup = cut(l_l_cut_data[i][1],[5])
+    #lzinf = [ z for z in l
+    lzsup = cut([ z for z in l_l_cut_data[i][1] if z > 500 ],[5])
+    in_range = len([z for z in lzsup if z > plot_range_sup[0] and z < plot_range_sup[1] ])
     underflow = len([z for z in lzsup if z < plot_range_sup[0]])
     overflow = len([z for z in lzsup if z > plot_range_sup[1]])
-    if overflow > len(lzsup)/4:
-      print("Overflow of", overflow, ". Increasing max range to from 1300 to 1600 microns.")
-      plot_range_sup[1]=1600
+    while in_range < .9:
+      if underflow/len(lzsup) > .15:
+        plot_range_sup[0] = plot_range_sup[0] - 100
+        print("   Decreasing min range to",plot_range_sup[0])
+      if overflow/len(lzsup) > .15:
+        plot_range_sup[1] = plot_range_sup[1] + 100
+        print("   Increasing max range to",plot_range_sup[1])
+      underflow = len([z for z in lzsup if z < plot_range_sup[0]])
+      overflow = len([z for z in lzsup if z > plot_range_sup[1]])
+      in_range = len([z for z in lzsup if z > plot_range_sup[0] and z < plot_range_sup[1] ])
       plot_color = 'g'
-    if underflow > len(lzsup)/4:
-      print("Underflow of", underflow, ". Decreasing range from 900 to 600 microns.")
-      plot_range_sup[0]=600
-      plot_color = 'g'
+
     nbin_sup=int((plot_range_sup[1]-plot_range_sup[0])/binsize)
     #nbin_inf=int((plot_range_inf[1]-plot_range_inf[0])/binsize)
     lzsup = [ z for z in lzsup if z > plot_range_sup[0] and z < plot_range_sup[1] ]
@@ -109,7 +114,6 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
       sb_plot_data[1][i].plot(fitted_func2[0], fitted_func2[1], 'r-', linewidth = .5)
     statbox = FormStatBox(df_z_sup['z'])
     fitbox = FormFitBox(gaussians_params, df_z_sup['z'], chisquare)
-    print(fitbox)
     sb_plot_data[1][i].text(plot_range_sup[0], 0.3*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = .7*fontsize)
     fig.add_subplot(sb_plot_data[1][i])
     for xz in range(0,len(l_l_all_data[k-1])):
@@ -178,8 +182,8 @@ def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
   attempt = 1
   fit_par1 = [len(df_z)/2,maxima[0],6]
   fit_par_range1 = [0,1000*fit_par1[0],plot_range[0],plot_range[1],0,30]
-  range_z1 = np.array([z for z in binned_z if z < maxima[0]+30 and z > maxima[0]-30])
-  range_count1 = np.array([i for [z,i] in zip(binned_z, i_count) if z < maxima[0]+30 and z > maxima[0]-30])
+  range_z1 = np.array([z for z in binned_z if z < maxima[0]+40 and z > maxima[0]-40])
+  range_count1 = np.array([i for [z,i] in zip(binned_z, i_count) if z < maxima[0]+40 and z > maxima[0]-40])
   print("    Fitting whole LEM...")
   gaussians_param1, rsquare1, result1 = singlegaussfit(range_z1, range_count1, fit_par1, fit_par_range1)
   chisquare = [rsquare1]
