@@ -1,2 +1,0 @@
-MARBLE ../data/cali/jan_2018/dec_2017/full_marbre_1000Hz*
-CALLE ../data/cali/dec_2017/calle*

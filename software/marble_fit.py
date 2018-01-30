@@ -9,21 +9,20 @@ import scipy
 import os
 import matplotlib.gridspec as gridspec
 from toolbox import *
+import re
 
-def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = [], outdirectory = "./"):
+def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_cale_file = [], outdirectory = "./"):
   l_marble_data = [[],[]]
   if ID > len(file_marble_file):
     print("ERROR: should have as many marble measurements than holes measurements")
   print("  Opening marble file " + file_marble_file[ID-1] + "...")
   #the rows of the real data and the rows of the marble data should correspond
   marble_file = open(file_marble_file[ID-1], "r")
-  content_marble_file = marble_file.readlines()
+  content_marble_file = [ line for line in marble_file.readlines() if not "Distance" in line ]
   marble_file.close()
   #beginning of measurment usually is crap
   #startcut = -900000
   #remove header line
-  if "Distance" in content_marble_file[0]:
-    content_marble_file = content_marble_file[1:]
   #read the file
   nx = 0
   do_fit = True
@@ -41,77 +40,106 @@ def marble(l_l_cut_data, file_marble_file = [], ID = 1, file_calle_file = [], ou
   if do_fit:
     l_marble_data = cut(l_marble_data,[2])
   l_l_cut_data, lr_fit, sigmarble = marble_fit(l_marble_data, l_l_cut_data, ID, outdirectory, do_fit)
-  if len(file_calle_file) != 0:
-    print("  Plotting calle data...")
-    plot_calle(file_calle_file, outdirectory)
+  if len(file_cale_file) != 0:
+    print("  Plotting cale data...")
+    plot_cale(file_cale_file, outdirectory)
   return l_l_cut_data, sigmarble
     
-def plot_calle(file_calle_file, outdirectory = "./"):
+def plot_cale(file_cale_file, outdirectory = "./"):
   i = 0
-  sb_plot_calle = []
+  cale = 0
+  sb_plot_cale = []
   marble_ref = []
-  l_calle_data = []
+  l_cale_data = []
+  means = []
+  title = []
   binsize = 5
   is_marble_ref = False
-  if "marbre" in file_calle_file[0]:
+  marble_file_position = [ i for i,fname in enumerate(file_cale_file) if "marbre" in os.path.basename(fname) ]
+  print(marble_file_position)
+  if len(marble_file_position) > 1:
+    print("   ERROR: found several marble files amoung cale files. I do not know which one to use for reference.")
+    exit(1)
+  elif len(marble_file_position) == 1:
+    marble_file_position = marble_file_position[0]
     is_marble_ref = True
-    calle_file = open(file_calle_file[0], "r")
-    content_calle_file = calle_file.readlines()
-    calle_file.close()
-    if "Distance" in content_calle_file[0]:
-      content_calle_file = content_calle_file[1:]
-    marble_ref = np.array([float(line.split("\n")[0].split(";")[0]) for line in content_calle_file])
-  for i in range(0,len(file_calle_file)):
-    if is_marble_ref and i == 0:
+    print("   Found marble reference file for cale")
+    cale_file = open(file_cale_file[marble_file_position], "r")
+    content_cale_file = [ line for line in cale_file.readlines() if not "Distance" in line ]
+    cale_file.close()
+    marble_ref = np.array([float(line.split("\n")[0].split(";")[0]) for line in content_cale_file])
+  for i in range(0,len(file_cale_file)):
+    print("   Opening cale file " + file_cale_file[i] + "...")
+    cale_file = open(file_cale_file[i], "r")
+    content_cale_file = [ line for line in cale_file.readlines() if not "Distance" in line ]
+    cale_file.close()
+    if is_marble_ref and i == marble_file_position:
       plot_title = "marble_ref"
-      l_calle_data = marble_ref
     else:
-      plot_title = os.path.basename(file_calle_file[i])
-      print("   Opening calle file " + file_calle_file[i] + "...")
-      calle_file = open(file_calle_file[i], "r")
-      content_calle_file = calle_file.readlines()
-      calle_file.close()
-      if "Distance" in content_calle_file[0]:
-        content_calle_file = content_calle_file[1:]
-      if is_marble_ref:
-        l_calle_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_calle_file if float(line.split("\n")[0].split(";")[0]) > 0]
-      else:
-        l_calle_data = [float(line.split("\n")[0].split(";")[0]) for line in content_calle_file if float(line.split("\n")[0].split(";")[0]) > 0]
-    if max(l_calle_data)-min(l_calle_data) > 500:
-      l_calle_data = [data for data in l_calle_data if data > (max(l_calle_data)-min(l_calle_data))/2 + min(l_calle_data)]
-      l_calle_data = cut(l_calle_data,[4])
-      print(max(l_calle_data))
-    nbin = int((max(l_calle_data) - min(l_calle_data))/binsize)
+      plot_title = os.path.basename(file_cale_file[i])
+    if is_marble_ref:
+      l_cale_data = [float(float(line.split("\n")[0].split(";")[0])-marble_ref.mean()) for line in content_cale_file if float(line.split("\n")[0].split(";")[0]) > 0]
+    else:
+      l_cale_data = [ float(line.split("\n")[0].split(";")[0]) for line in content_cale_file if float(line.split("\n")[0].split(";")[0]) > 0 ]
+    if max(l_cale_data)-min(l_cale_data) > 500:
+      l_cale_data = [data for data in l_cale_data if data > (max(l_cale_data)-min(l_cale_data))/2 + min(l_cale_data)]
+      l_cale_data = cut(l_cale_data,[4])
+    nbin = int((max(l_cale_data) - min(l_cale_data))/binsize)
     if nbin < 50:
       nbin = 'auto'
-    df_z = pandas.DataFrame({'z':l_calle_data})
+    df_z = pandas.DataFrame({'z':l_cale_data})
     fig = plt.figure(100+i,figsize=(12, 12))
-    #sb_plot_calle.append(fig.add_subplot(211))
-    #sb_plot_calle[-1].set_xlabel("time (ms)")
-    #sb_plot_calle[-1].set_ylabel("z (micrometer)")
-    #sb_plot_calle[-1].set_ylim([0.9*min(l_calle_data),1.1*max(l_calle_data)])
-    #sb_plot_calle[-1].set_title("z vs time")
-    #sb_plot_calle[-1].plot([ [i,x] for i,x in enumerate(l_calle_data)], 'g-')
-    sb_plot_calle.append(fig.add_subplot(111))
-    i_count, binned_z, _ = sb_plot_calle[-1].hist(df_z['z'], bins = nbin)
+    #sb_plot_cale.append(fig.add_subplot(211))
+    #sb_plot_cale[-1].set_xlabel("time (ms)")
+    #sb_plot_cale[-1].set_ylabel("z (micrometer)")
+    #sb_plot_cale[-1].set_ylim([0.9*min(l_cale_data),1.1*max(l_cale_data)])
+    #sb_plot_cale[-1].set_title("z vs time")
+    #sb_plot_cale[-1].plot([ [i,x] for i,x in enumerate(l_cale_data)], 'g-')
+    sb_plot_cale.append(fig.add_subplot(111))
+    i_count, binned_z, _ = sb_plot_cale[-1].hist(df_z['z'], bins = nbin)
     binned_z = binned_z[:-1]
-    maxz = [l_calle_data[i] for i,c in enumerate(i_count) if c == i_count.max()][0]
+    maxz = [l_cale_data[i] for i,c in enumerate(i_count) if c == i_count.max()][0]
     fit_par = [len(df_z), maxz, math.sqrt(float(df_z.var()))]
     gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
     if len([param for param in gaussians_param if param > 1e20]) != 0:
       print("   fit failed, parameter too high :'(")
       gaussians_param = []
-    sb_plot_calle[-1].plot(result[0], result[1], 'r-')
+    sb_plot_cale[-1].plot(result[0], result[1], 'r-')
     fitbox = FormFitBox(gaussians_param, df_z['z'], [rsquare])
-    sb_plot_calle[-1].text(df_z['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 36)
-    sb_plot_calle[-1].set_xlabel("Height (micrometer)")
-    sb_plot_calle[-1].set_ylabel("Count")
-    sb_plot_calle[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
-    sb_plot_calle[-1].set_title("Height of " + plot_title + " reference")
-    fig.savefig(outdirectory + "calle_" + str(plot_title) + ".pdf")
-    plt.close()
-    print("   ...plot saved in " + outdirectory + "calle_" + str(plot_title) + ".pdf")
-
+    sb_plot_cale[-1].text(df_z['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 36)
+    sb_plot_cale[-1].set_xlabel("Height (micrometer)")
+    sb_plot_cale[-1].set_ylabel("Count")
+    sb_plot_cale[-1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
+    sb_plot_cale[-1].set_title("Height of " + plot_title + " reference")
+    fig.savefig(outdirectory + "cale_" + str(plot_title.replace('.csv','.pdf')))
+    print("   ...plot saved in " + outdirectory + "cale_" + str(plot_title) + ".pdf")
+    plt.close('all')
+    if i == marble_file_position:
+      cale = 0
+    else:
+      cale = re.findall(r'\d+',plot_title)
+      if len(cale) == 2:
+        cale = float(cale[0] + "." + cale[1])
+      elif len(cale) == 1:
+        cale = float(cale[0])
+      else:
+        print(   "ERROR: wrong cale filename format")
+        exit(1)
+    title.append(cale)
+    means.append(np.mean(df_z['z']))
+  title = np.array(title)
+  means = np.array(means)
+  print("   Computing laser slope...")
+  lr_fit = linear_model.LinearRegression()
+  lr_fit.fit(title[:,np.newaxis], means)
+  print("   cale cali plot saved in " + outdirectory + "cale_cale_cali.pdf")
+  npl_x_test = np.linspace(np.min(title), np.max(title), 100)
+  plt.plot(npl_x_test, lr_fit.predict(npl_x_test[:,np.newaxis]), color='blue', linewidth=3)
+  line_equation = 'z(x)=' + str('%.2E' % Decimal(lr_fit.coef_[0])) + 'x+' + str(round(Decimal(lr_fit.intercept_),2))
+  plt.text(3*(title.max()-title.min())/4,1.005*means.max(),line_equation,horizontalalignment='center', color='r', fontsize = 36)
+  plt.scatter(title,means)
+  plt.savefig(outdirectory + "cale_cali.pdf")
+  plt.close()
 
 def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./", do_fit = True):
   l_l_corrected_data = []
@@ -172,9 +200,9 @@ def plot_fit(npa_x, npa_z, lr_fit, ID = 1, outdirectory = "./"):
   fitbox = FormFitBox(gaussians_param, df_z_corr['z'], [rsquare])
   sb3.text(df_z_corr['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 24, color = 'r')
   fig.savefig(outdirectory + "marble_" + str(ID) + ".pdf",bbox_inches = "tight")
-  plt.close()
   print("   ...plot saved in marble_" + outdirectory + "marble_" + str(ID) + ".pdf")
   return gaussians_param[2]
+  plt.close('all')
   
 def plot_other_marble_file(other_marble_file, outdirectory = "./"):
   sb_plot_marble = []
@@ -188,7 +216,7 @@ def plot_other_marble_file(other_marble_file, outdirectory = "./"):
     print("  Opening other marble file " + File + "...")
   #the rows of the real data and the rows of the marble data should correspond
     marble_file = open(File, "r")
-    content_marble_file = marble_file.readlines()
+    content_marble_file = [ line for line in marble_file.readlines() if not "Distance" in line ]
     marble_file.close()
     name = os.path.basename(File).replace(".csv",".pdf")
     #beginning of measurment usually is crap
@@ -224,7 +252,7 @@ def plot_other_marble_file(other_marble_file, outdirectory = "./"):
     gaussians_param, rsquare, result = singlegaussfit(binned_z, i_count, fit_par)
     sb_plot_marble[-1].plot(result[0], result[1], 'r-')
     fitbox = FormFitBox(gaussians_param, df_z['z'], [rsquare])
-    if "laser_cuivre_immobile" in name:
+    if "copper" or "cuivre" in name:
       sigma = gaussians_param[2]
     sb_plot_marble[-1].text(df_z['z'].min(), 0.5*i_count.max(), fitbox, horizontalalignment='left', fontsize = 36, color = 'r')
     sb_plot_marble[-1].set_xlabel("Height (micrometer)")

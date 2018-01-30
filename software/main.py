@@ -20,7 +20,7 @@ def usage():
   print("-h : print this message")
   print("-i path/to/file : input data file")
   print("-c : cut file, where one can specify x or z cuts")
-  print("-a : cali files (marbles and, possibly, calles)")
+  print("-a : cali files (marbles and, possibly, cales)")
   print("-m : to specify a single marble file to be used as reference")
   print("-s : to apply the separation from the cut file")
   print("-t : only plot raw data and cali data. Usefull to quickly check the aspect of the measurements")
@@ -31,7 +31,7 @@ def load_cali(my_cali_file):
   cali = califile.readlines()
   califile.close()
   l_marble_file = []
-  l_calle_file = []
+  l_cale_file = []
   l_other_marble_file = []
   for cal in cali:
     cal = cal.split("\n")[0]
@@ -47,12 +47,12 @@ def load_cali(my_cali_file):
       else:
         print("ERROR : could not find Marble reference files")
         exit(1)
-    elif cal.split(" ")[0] == "CALLE":
+    elif cal.split(" ")[0] == "CALE":
       if glob(cal.split(" ")[1]):
-        l_calle_file = sorted(glob(cal.split(" ")[1]))
-        print("   Found calle files :", l_calle_file)
+        l_cale_file = sorted(glob(cal.split(" ")[1]))
+        print("   Found cale files :", l_cale_file)
       else:
-        print("ERROR : could not find calle files")
+        print("ERROR : could not find cale files")
         exit(1)
     elif cal.split(" ")[0] == "MARBLE_OTHER":
       if glob(cal.split(" ")[1]):
@@ -64,7 +64,7 @@ def load_cali(my_cali_file):
     else:
       print("Load_cali ERROR : bad cali format " + cal + ". ")
       exit(1)
-  return[l_marble_file, l_calle_file, l_other_marble_file]
+  return[l_marble_file, l_cale_file, l_other_marble_file]
   
 def load_cuts(my_cut_file):
   cutfile = open(my_cut_file,"r")
@@ -148,9 +148,7 @@ def main(argv):
 
   #Booleans to ID the arguments p
   opt_cali_file = False
-  cali_file_arg = ""
   opt_cut_file = False
-  cut_file_arg = ""
   opt_data = False
   data_arg = ""
   opt_marble_fit_file = False
@@ -159,13 +157,13 @@ def main(argv):
   opt_is_test = False
   
   l_marble_file = []
-  l_calle_file = []
+  l_cale_file = []
   l_other_marble_file = []
   sigmaCopperLaser = 0
   
   #Read the arguments
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hi:c:a:m:st", [])
+    opts, args = getopt.getopt(sys.argv[1:], "hi:cam:st", [])
   except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -173,13 +171,11 @@ def main(argv):
   for opt, arg in opts:
     if opt == "-h":
       usage()
-      exit(1)
+      exit(0)
     elif opt == "-a":
       opt_cali_file = True
-      cali_file_arg = arg
     elif opt == "-c":
       opt_cut_file = True
-      cut_file_arg = arg
     elif opt == "-i":
       opt_data = True
       data_arg = arg
@@ -193,49 +189,65 @@ def main(argv):
     else:
       print("Unrecognized arguments")
       usage()
-  
+      
   if not opt_data:
     print("ERROR: need a data input.")
   if not os.path.isfile(data_arg) and not os.path.isdir(data_arg):
     print("ERROR: " + data_arg + " not found.")
-    exit(0)
-  if opt_cali_file:
-    if not os.path.isfile(cali_file_arg):
-      print("ERROR: cali file " + cali_file_arg + " not found.")
-      exit(0)
-    else:
-      print("  Loading califile " + cut_file_arg + "...")
-      l_marble_file, l_calle_file, l_other_marble_file = load_cali(cali_file_arg)
-  if opt_cut_file:
-    if not os.path.isfile(cut_file_arg):
-      print("ERROR: cut file " + cut_file_arg + " not found.")
-      exit(0)
+    exit(1)
   if opt_marble_fit_file:
     if not os.path.isfile(marble_fit_file_arg):
       print("ERROR: marble fit file " + marble_fit_file_arg + " not found.")
-      exit(0)
+      exit(1)
       
 
+  
+  califile = ""
+  cutfile = ""
   l_datafiles = []
-  outdirectory = "./"
+  while data_arg[-1] == '/':
+    data_arg = data_arg[:-1]
+  outdirectory = data_arg
   if os.path.isfile(data_arg):
-    l_datafiles.append(data_arg)
-    outdirectory = "./" + data_arg.split("data/")[1]
-    outdirectory = outdirectory.replace(".csv","")
-  elif os.path.isdir(data_arg):
-    outdirectory = "./" + data_arg.split("data/")[1]
-    l_datafiles = sorted(glob(data_arg + '/*merged*'))
-  tmp_outdir = "."
-  for direc in outdirectory.split("/"):
-    if direc == "" or "." in direc:
-      continue
-    tmp_outdir = tmp_outdir + "/" + direc
-    if not os.path.isdir(tmp_outdir):
-      if os.path.isfile(tmp_outdir):
-        print("ERROR: needs to create output directiry ",tmp_outdir," but file with same name already exists")
+    if opt_cali_file:
+      califile = os.path.dirname(data_arg) + "/cali.txt"
+      while not (os.path.isfile(califile)) and califile != "exit":
+        califile = input("ERROR: cali file " + califile + " not found. Please type the path to cali.txt (or type exit to quit)\n")
+      if califile == "exit":
         exit(1)
-      print("Creating output directory ",tmp_outdir,"...")
-      os.mkdir(tmp_outdir)
+      else:
+        print("  Loading califile " + califile + "...")
+        l_marble_file, l_cale_file, l_other_marble_file = load_cali(califile)
+    if opt_cut_file:
+      cutfile = os.path.dirname(data_arg) + "/cuts.txt"
+      while not (os.path.isfile(cutfile)) and cutfile != "exit":
+        cutfile = input("ERROR: cuts file " + cutfile + " not found. Please type the path to cuts.txt (or type exit to quit)\n")
+      if cutfile == "exit":
+        exit(1)
+    l_datafiles.append(data_arg)
+    outdirectory = outdirectory.replace(".csv","") + "_plots"
+  elif os.path.isdir(data_arg):
+    if opt_cali_file:
+      if not os.path.isfile(data_arg + "/cali.txt"):
+        print("ERROR: cali file " + data_arg + "/cali.txt not found.")
+        exit(1)
+      else:
+        califile = data_arg + "/cali.txt"
+        print("  Loading califile " + califile + "...")
+        l_marble_file, l_cale_file, l_other_marble_file = load_cali(califile)
+    if opt_cut_file:
+      if not os.path.isfile(data_arg + "/cuts.txt"):
+        print("ERROR: cut file " + data_arg + "/cuts.txt not found.")
+        exit(1)
+      else:
+        cutfile = data_arg + "/cuts.txt"
+    if not  os.path.isdir(data_arg + "/data"):
+      print("ERROR: need data directory INSIDE the LEM directory",data_arg)
+      exit(1)
+    outdirectory = outdirectory + "/plots"
+    l_datafiles = sorted(glob(data_arg + '/data/*merged*'))
+  if not os.path.isdir(outdirectory):
+    os.mkdir(outdirectory)
   outdirectory = outdirectory + "/"
   
   row = len(l_datafiles)
@@ -243,17 +255,16 @@ def main(argv):
   l_l_raw_data = []
   l_l_glued_cutdata = [[[],[]]]
   col = 0
+  sigmarble = 0
   
   for i in range(0,len(l_datafiles)):
     print("Opening datafile ",l_datafiles[i],"...")
     datafiles = open(l_datafiles[i], "r")
     title = os.path.basename(l_datafiles[i]).replace("merged_","").replace(".csv","")
-    lines = datafiles.readlines()
+    lines = [ line for line in datafiles.readlines() if not "Distance" in line ]
     datafiles.close()
-    if "Distance" in lines[0]:
-      lines = lines[1:]
     print(" Sorting data...")
-    tmp_l_l_cut_data, tmp_l_raw_data = sort_data(lines, cut_file_arg, i)
+    tmp_l_l_cut_data, tmp_l_raw_data = sort_data(lines, cutfile, i)
     print(" ...done")
     l_l_raw_data.append(tmp_l_raw_data)
     if opt_marble_fit_file:
@@ -262,7 +273,7 @@ def main(argv):
     if l_marble_file != []:
       print(" Correcting row " + str(i+1) + " with marble...")
       if i == 0:
-        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_calle_file, outdirectory)
+        tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, l_cale_file, outdirectory)
       else:
         tmp_l_l_cut_data, sigmarble = marble(tmp_l_l_cut_data, l_marble_file, i+1, [], outdirectory)
       print(" ...done")

@@ -69,19 +69,24 @@ def FormFitBox(param, df_z_selected, chisquare):
   
 def singlegaussfit(x,proba,par, range_p = []):
   out = []
-  print("    Fit attempt around possible mean ",par[1],"...")
+  chisquare = 100
+  if len(par)+len(range_p) > len(x):
+    print("   You gave me less x than parameters, can not fit in those conditions!")
+    return None, chisquare, None
+  print("    Fit attempt around possible mean ", par[1], "...")
   if range_p == []:
     p,cov,infodict,mesg,ier = leastsq(e_single_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
   else:
     p,cov,infodict,mesg,ier = leastsq(e_single_gauss_fit, par[:]+range_p[:], args=(x, proba), maxfev=100000, full_output=1)
-  xxx = np.arange(min(x),max(x),x[1]-x[0])
-  ccc = single_gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelength
-  chisquare = np.array([ (c-pro)*(c-pro) for c,pro in zip(ccc,proba) ]).sum()/proba.sum()
-  ss_err = (infodict['fvec']**2).sum()
-  ss_tot = ((proba-proba.mean())**2).sum()
-  rsquare = 1-(ss_err/ss_tot)
-  print("     Mean found : ",p[1]," chi**2=",chisquare)
-  return p[:len(p)-len(range_p)],chisquare, [xxx,ccc]
+  xxx = np.arange(min(x), max(x), x[1]-x[0])
+  ccc = single_gauss_fit(p,xxx) 
+  if proba.sum() != 0:
+    chisquare = np.array([ (c-pro)*(c-pro) for c,pro in zip(ccc,proba) ]).sum()/proba.sum()
+  xxx = np.arange(p[1]-(max(x)-min(x))/2, p[1]+(max(x)-min(x))/2, x[1]-x[0])
+  ccc = single_gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelengths
+  
+  print("     Mean found : ", p[1], " chi**2=", chisquare)
+  return p[:len(p)-len(range_p)], chisquare, [xxx,ccc]
 
 def e_single_gauss_fit(p, x, y):
   range_p = p[3:]
@@ -113,9 +118,9 @@ def doublegaussfit(x,proba,par, range_p = []):
   ccc = double_gauss_fit(p,xxx) # this will only work if the units are pixel and not wavelength
   ss_err = (infodict['fvec']**2).sum()
   ss_tot = ((proba-proba.mean())**2).sum()
-  rsquare = 1-(ss_err/ss_tot)
-  print("     Means found : ",p[1]," and ",p[4],", R**2=",rsquare)
-  return p[:len(p)-len(range_p)],rsquare, [xxx,ccc]
+  chisquare = 1-(ss_err/ss_tot)
+  print("     Means found : ",p[1]," and ",p[4],", R**2=",chisquare)
+  return p[:len(p)-len(range_p)],chisquare, [xxx,ccc]
 
 def e_double_gauss_fit(p, x, y):
   range_p = p[6:]

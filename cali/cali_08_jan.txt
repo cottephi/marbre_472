@@ -1,2 +1,0 @@
-MARBLE ../data/cali/jan_2018/08_jan/marbre*
-CALLE ../data/cali/dec_2017/calle*
