@@ -16,7 +16,7 @@ from decimal import Decimal
 
 def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser = 0, outdirectory = "./"):
   fig = plt.figure(1,figsize=(3*col, 3*row))
-  plt.subplots_adjust(left=-0.1*col/4 + 0.165, bottom=-0.05*col/4 + 0.105, right=0.95, top=0.95, wspace=0.2, hspace=0.2)
+  plt.subplots_adjust(left=-0.1*col/4 + 0.165, bottom=-0.05*row/4 + 0.105, right=0.95, top=0.95, wspace=0.2, hspace=0.2)
   outer = gridspec.GridSpec(row, col, wspace=0.2, hspace=0.3)
   l_l_all_data = []
   k = 0
@@ -115,20 +115,42 @@ def plot_holes(l_l_all_data, row, col, name = "", outdirectory = "./"):
   
 def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLaser = 0, outdirectory = "./"):
   thick, sigmathick, FR4, sigmaFR4, Cu, NLem, NFR4, N, sigmarble = np.array(thick_sigmathick_rim_sigmarim)
-  sigmaMEANthick = [ math.sqrt(sigthick**2/nLem**2 + sigmar**2/n**2) for sigthick,nLem,sigmar,n in zip(sigmathick,NLem,sigmarble,N) ]
-  sigmaMEANFR4 = [ math.sqrt(sigfr4**2/nFR4**2 + sigmar**2/n**2) for sigfr4,nFR4,sigmar,n in zip(sigmaFR4,NFR4,sigmarble,N) ]
-  sigmaMEANCU = [ math.sqrt(sigfr4**2 + sigthick) for sigfr4,sigthick in zip(sigmaMEANFR4,sigmaMEANthick) ]
-  sigmaMEANFR4 = [ math.sqrt(4*sigfr4**2 + sigthick**2) for sigfr4,sigthick in zip(sigmaMEANFR4,sigmaMEANthick) ]
-  print("Result : ")
-  for i in range(0,len(thick)):
-    if sigmathick[i]**2-sigmaCopperLaser**2 < 0:
-      print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: NaN")
-    else:
-      print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: ",math.sqrt(sigmathick[i]**2-sigmaCopperLaser**2))
-    print("    Cu: ",Cu[i],"+/-",sigmaMEANCU[i]," microns, FR4: ", FR4[i],"+/-",sigmaMEANFR4[i]," microns")
-  plot_2D_map(thick,sigmaMEANthick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
-  plot_2D_map(FR4,sigmaMEANFR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col, 800, 1300, outdirectory)
-  plot_2D_map(Cu,sigmaMEANCU,6,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
+  #sigmaMEANthick = [ math.sqrt(sigthick**2/nLem**2 + sigmar**2/n**2) if nLem !=0 and n != 0 else np.nan for sigthick,nLem,sigmar,n in zip(sigmathick,NLem,sigmarble,N) ]
+  #sigmaMEANFR4 = [ math.sqrt(sigfr4**2/nFR4**2 + sigmar**2/n**2) if nFR4 !=0 and n != 0 else np.nan for sigfr4,nFR4,sigmar,n in zip(sigmaFR4,NFR4,sigmarble,N) ]
+  #sigmaMEANCU = [ math.sqrt(sigfr4**2 + sigthick**2) for sigfr4,sigthick in zip(sigmaMEANFR4,sigmaMEANthick) ]
+  #sigmaMEANFR4 = [ math.sqrt(4*sigfr4**2 + sigthick**2) for sigfr4,sigthick in zip(sigmaMEANFR4,sigmaMEANthick) ]
+  #print("Result : ")
+  #for i in range(0,len(thick)):
+    #if sigmathick[i]**2-sigmaCopperLaser**2 < 0:
+      #print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: NaN")
+    #else:
+      #print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: ",math.sqrt(sigmathick[i]**2-sigmaCopperLaser**2))
+    #print("    Cu: ",Cu[i],"+/-",sigmaMEANCU[i]," microns, FR4: ", FR4[i],"+/-",sigmaMEANFR4[i]," microns")
+  #plot_2D_map(thick,sigmaMEANthick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
+  #plot_2D_map(FR4,sigmaMEANFR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col, 800, 1300, outdirectory)
+  #plot_2D_map(Cu,sigmaMEANCU,7,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
+  mean_thick = np.mean(thick)
+  if mean_thick == 0:
+    print("Mean LEM thickness is 0")
+    return
+  thick_relat = np.array([ thi - mean_thick for thi in thick ])
+  #sigma_mean = math.sqrt(sum([sig**2 for sig in sigmaMEANthick]))/len(thick)
+  #sigma_relat = np.array([ 100*math.sqrt(sig**2+thi**2*sigma_mean**2/mean_thick**2)/mean_thick for sig,thi in zip(sigmaMEANthick, thick) ])
+  plot_2D_map(thick_relat,[],6,"map of relative LEM thickness compared to mean thickness. Each pixel is a measurement hole","2D_relat_LEM_thickness_distri.pdf", row, col, -50,50, outdirectory)
+  plot_thickness_histo(thick,outdirectory)
+  
+def plot_thickness_histo(thicknesses, outdirectory):
+  binsize = 5. #microns
+  nbins=int((max(thicknesses)*1.01-min(thicknesses)*0.99)/binsize)
+  df_thicknesses = pandas.DataFrame({'thick':thicknesses})
+  fig = plt.figure(8,figsize=(9, 9))
+  sb = fig.add_subplot(111)
+  sb.set_title('Mean thickness distribution of the 25 holes')
+  sb.set_xlabel('Thickness(micrometer)')
+  sb.set_ylabel('count / 1 microns')
+  i_count, binned_thick , _ = sb.hist(df_thicknesses['thick'], bins=nbins, range = [min(thicknesses)*0.99,max(thicknesses)*1.01])
+  fig.savefig(outdirectory  + "thickness_histo.pdf")
+  
   
 def plot_2D_map(z,sigma,figID,title, savename, row, col, v0 = 800, v1 = 1300, outdirectory = "./"):
   fig = plt.figure(figID,figsize=(3*col, 3*row))
@@ -144,8 +166,11 @@ def plot_2D_map(z,sigma,figID,title, savename, row, col, v0 = 800, v1 = 1300, ou
   sb_plot_2D_map.set_xticks([])
   sb_plot_2D_map.set_title(title)
   for i in range(0,len(z)):
-    mytext = str(i+1) + "\n" + str(round(Decimal(z[i]),2)) + "+/-" + str(round(Decimal(sigma[i]),4))
-    sb_plot_2D_map.annotate(mytext,xy=(x[i]-0.25,y[i]), color='white', path_effects=[PathEffects.withStroke(linewidth=2, foreground="black")])
+    if len(sigma) == len(z):
+      mytext = str(i+1) + "\n" + str(round(Decimal(z[i]),2)) + "+/-" + str(round(Decimal(sigma[i]),4))
+    else:
+      mytext = str(i+1) + "\n" + str(round(Decimal(z[i]),2))
+    sb_plot_2D_map.annotate(mytext,xy=(x[i]-0.25,y[i]), color='white', path_effects=[PathEffects.withStroke(linewidth=2, foreground="black")], fontsize = 20)
   fig.colorbar(p)
   fig.savefig(outdirectory + savename)
   print("   2D map saved in " + outdirectory + savename)
@@ -160,18 +185,18 @@ def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
   print("    Fitting whole LEM...")
   gaussians_param1, chisquare1, result1 = singlegaussfit(range_z1, range_count1, fit_par1, fit_par_range1)
   chisquare = [chisquare1]
-  if chisquare1 > 50:
-    print("   Fit failed")
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    thick_sigmathick_rim_sigmarim.append(0)
-    return thick_sigmathick_rim_sigmarim, [], [], [], []
+  #if chisquare1 > 50:
+    #print("   Fit failed")
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #hick_sigmathick_rim_sigmarim.append(0)
+    #thick_sigmathick_rim_sigmarim.append(0)
+    #return thick_sigmathick_rim_sigmarim, [], [], [], []
   z1 = gaussians_param1[1]
   sigma1 = gaussians_param1[2]
   chisquares = []

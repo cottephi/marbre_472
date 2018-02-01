@@ -53,20 +53,8 @@ def FormFitBox(param, df_z_selected, chisquare):
   else:
     print("ERROR: unknown number of parameter in FormFitBox")
     exit(1)
-  
-#def gaussfit(df_z, sb):
-  #l_fit_range = []
-  #float_var_dataframe = df_z.var()
-  #float_mean_dataframe = df_z.mean()
-  #for float_z in df_z:
-    #if float_z > float_mean_dataframe-3*math.sqrt(float_var_dataframe) and float_z < float_mean_dataframe+3*math.sqrt(float_var_dataframe):
-      #l_fit_range.append(float_z)
-  #npa_fit_range = np.array(l_fit_range)
-  #npl_x_plot = np.linspace(float_mean_dataframe-3*math.sqrt(float_var_dataframe), float_mean_dataframe+3*math.sqrt(float_var_dataframe), 1000)
-  #float_m, float_s = scipy.stats.norm.fit(npa_fit_range)
-  #npa_result = df_z.count()*scipy.stats.norm.pdf(npl_x_plot, float_m, float_s)
-  #sb.plot(npl_x_plot, npa_result)
-  
+
+
 def singlegaussfit(x,proba,par, range_p = []):
   out = []
   chisquare = 100
@@ -163,6 +151,45 @@ def find_local_max(counts, values, binsize):
       counts2 = np.array([ z if i < tmp_posmax-int(30/binsize) or i > tmp_posmax+int(30/binsize) else 0 for i,z in enumerate(counts2)])
   print("   Local max found : ",Max)
   return Max
+  
+
+def gainfit(x, proba, par, range_p = []):
+  out = []
+  chisquare = 100
+  if len(par)+len(range_p) > len(x):
+    print("   You gave me less x than parameters, can not fit in those conditions!")
+    return None, chisquare, None
+  print("    Fiting gain...")
+  if range_p == []:
+    p,cov,infodict,mesg,ier = leastsq(e_gain_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)
+  else:
+    p,cov,infodict,mesg,ier = leastsq(e_gain_fit, par[:]+range_p[:], args=(x, proba), maxfev=100000, full_output=1)
+  xxx = np.arange(0, 4000,10)
+  ccc = gain_fit(p,xxx) 
+  if proba.sum() != 0:
+    chisquare = np.array([ (c-pro)*(c-pro) for c,pro in zip(ccc,proba) ]).sum()/proba.sum()
+  
+  print("Parameters found: ", p, ", chi**2=", chisquare)
+  return p[:len(p)-len(range_p)], chisquare, [xxx,ccc]
+
+def e_gain_fit(p, x, y):
+  range_p = p[3:]
+  binsize = x[2]-x[1]
+  if len(range_p) != 2*(len(p)-len(range_p)) and len(range_p) != 0:
+    print("ERROR: should have twice as many ranges than parameters in singlegaussfit")
+    exit(1)
+  #if p[0] > range_p[0] and p[0] < range_p[1] and p[1] > range_p[2] and p[1] < range_p[3] and p[2] > range_p[4] and p[2] < range_p[5] and p[3] > range_p[6] and p[3] < range_p[7] and p[4] > range_p[8] and p[4] < range_p[9] and p[5] > range_p[10] and p[5] < range_p[11]:
+  if len(range_p) != 0:
+    if p[2] > range_p[4] and p[2] < range_p[5]:
+      return gain_fit(p,x) -y
+    else:
+      ret = [1e6 for i in [None]*(len(p))]
+      return ret
+  else:
+    return gain_fit(p,x) -y
+
+def gain_fit(p, x):
+  return p[0]*np.exp(p[1]*np.exp(-p[2]/x)*0.001)
   
 def remove_letters(r):
     return re.sub(r'[a-zA-Z]', r'', r)

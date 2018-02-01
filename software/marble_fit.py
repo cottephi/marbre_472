@@ -56,7 +56,6 @@ def plot_cale(file_cale_file, outdirectory = "./"):
   binsize = 5
   is_marble_ref = False
   marble_file_position = [ i for i,fname in enumerate(file_cale_file) if "marbre" in os.path.basename(fname) ]
-  print(marble_file_position)
   if len(marble_file_position) > 1:
     print("   ERROR: found several marble files amoung cale files. I do not know which one to use for reference.")
     exit(1)
