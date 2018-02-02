@@ -112,10 +112,15 @@ def sort_data(lines, data_arg, row = 0):
   elif os.path.isfile(os.path.dirname(data_arg) + "/../cuts.txt"):
     cut_file_arg = os.path.dirname(data_arg) + "/../cuts.txt"
     print("   Found cuts files :" , cut_file_arg)
+  elif os.path.isfile("../data/cuts.txt"):
+    cut_file_arg = "../data/cuts.txt"
+    print("   Found cuts files :" , cut_file_arg)
   else:
     print("**WARNING: No cuts file found. Ignoring cuts.")
   
   if cut_file_arg != "":
+    z_counter = 0
+    z_tmp = 0
     print("  Loading cutfile " + cut_file_arg + "...")
     cutfile_content = load_cuts(cut_file_arg)
     do_cuts = True
@@ -149,6 +154,12 @@ def sort_data(lines, data_arg, row = 0):
       
       if not ignore:
         ignore = True
+        if z > z_tmp*0.999 and z < z_tmp*1.001:
+          z_counter = z_counter + 1
+        else:
+          z_counter = 0
+        #if z_counter > 200:
+          #continue
         while len(cutdata) <= addto:
           cutdata.append([[],[]])
         cutdata[addto][0].append(x)

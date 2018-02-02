@@ -147,7 +147,7 @@ def plot_thickness_histo(thicknesses, outdirectory):
   sb = fig.add_subplot(111)
   sb.set_title('Mean thickness distribution of the 25 holes')
   sb.set_xlabel('Thickness(micrometer)')
-  sb.set_ylabel('count / 1 microns')
+  sb.set_ylabel('count / 5 microns')
   i_count, binned_thick , _ = sb.hist(df_thicknesses['thick'], bins=nbins, range = [min(thicknesses)*0.99,max(thicknesses)*1.01])
   fig.savefig(outdirectory  + "thickness_histo.pdf")
   

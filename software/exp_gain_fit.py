@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def gain_func(p, x, dx):
-  return p[0]*np.exp(p[1]*np.exp(-p[2]/x)*(0.001+dx/1000000))
+  return p[0]*np.exp(p[1]*np.exp(-p[2]/(x/((0.001+dx/1000000))))*(0.001+dx/1000000))
 
 Voltage = np.array([   10,   20,   30,   40,   50,   60,   70,   80,   90,  100,
         110,  120,  130,  140,  150,  160,  170,  180,  190,  200,  210,
@@ -177,14 +177,14 @@ gain = np.array([   2.04137534e-01,   2.04137534e-01,
          3.67940655e+02,   3.95010757e+02,   4.24204128e+02,
          4.55695977e+02])
 
-par = [0.2,40000,1000]
+par = [0.2,4000,1000]
 dx = [-100,-50,-10,0,10,50,100]
 fig = plt.figure(figsize=(5, 5))
 sb = fig.add_subplot(111)
 sb.tick_params(axis='both',which='both')
 sb.set_xlabel("Voltage through LEM (V)")
 sb.set_ylabel("Gain")
-#sb.set_yscale('log')
+sb.set_yscale('log')
 p, chisquare, result = toolbox.gainfit(Voltage, gain, par)
 sb.plot(result[0], result[1], 'r-', linewidth = .5)
 for x in dx:

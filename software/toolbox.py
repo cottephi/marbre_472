@@ -189,7 +189,7 @@ def e_gain_fit(p, x, y):
     return gain_fit(p,x) -y
 
 def gain_fit(p, x):
-  return p[0]*np.exp(p[1]*np.exp(-p[2]/x)*0.001)
+  return p[0]*np.exp(p[1]*np.exp(-p[2]/(x/0.001))*0.001)
   
 def remove_letters(r):
     return re.sub(r'[a-zA-Z]', r'', r)
