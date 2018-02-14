@@ -234,6 +234,9 @@ def main(argv):
     data_arg = data_arg[:-1]
   outdirectory = data_arg
   if os.path.isfile(data_arg):
+    if not data_arg.split(".")[1] == "csv":
+      print("ERROR: input file must be .csv")
+      exit(1)
     l_datafiles.append(data_arg)
     outdirectory = outdirectory.replace(".csv","") + "_plots"
   elif os.path.isdir(data_arg):

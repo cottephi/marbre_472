@@ -13,6 +13,7 @@ import matplotlib.ticker as tk
 import itertools as it
 from toolbox import *
 from decimal import Decimal
+import csv
 
 def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser = 0, outdirectory = "./"):
   fig = plt.figure(1,figsize=(3*col, 3*row))
@@ -83,7 +84,6 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
       sb_plot_data.plot(fitted_func1[0], fitted_func1[1], 'r-', linewidth = .5)
     if len(fitted_func2) != 0:
       sb_plot_data.plot(fitted_func2[0], fitted_func2[1], 'r-', linewidth = .5)
-    statbox = FormStatBox(df_z_sup['z'])
     fitbox = FormFitBox(gaussians_params, df_z_sup['z'], chisquare)
     sb_plot_data.text(plot_range_sup[0], 0.3*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = .7*fontsize)
     fig.add_subplot(sb_plot_data)
@@ -126,9 +126,9 @@ def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLas
     #else:
       #print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: ",math.sqrt(sigmathick[i]**2-sigmaCopperLaser**2))
     #print("    Cu: ",Cu[i],"+/-",sigmaMEANCU[i]," microns, FR4: ", FR4[i],"+/-",sigmaMEANFR4[i]," microns")
-  #plot_2D_map(thick,sigmaMEANthick,4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
+  plot_2D_map(thick,[],4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
   #plot_2D_map(FR4,sigmaMEANFR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col, 800, 1300, outdirectory)
-  #plot_2D_map(Cu,sigmaMEANCU,7,"map of rim thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
+  plot_2D_map(Cu,[],7,"map of copper thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
   mean_thick = np.mean(thick)
   if mean_thick == 0:
     print("Mean LEM thickness is 0")
@@ -137,19 +137,34 @@ def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLas
   #sigma_mean = math.sqrt(sum([sig**2 for sig in sigmaMEANthick]))/len(thick)
   #sigma_relat = np.array([ 100*math.sqrt(sig**2+thi**2*sigma_mean**2/mean_thick**2)/mean_thick for sig,thi in zip(sigmaMEANthick, thick) ])
   plot_2D_map(thick_relat,[],6,"map of relative LEM thickness compared to mean thickness. Each pixel is a measurement hole","2D_relat_LEM_thickness_distri.pdf", row, col, -50,50, outdirectory)
-  plot_thickness_histo(thick,outdirectory)
+  myRangeLEM = [1050,1200]
+  myRangeCu = [30,90]
+  if col*row != 25:
+    myRangeLEM = []
+    myRangeCu = []
+  if col*row != 1:
+    plot_thickness_histo(thick,'LEM thickness distribution of the holes', outdirectory, 8, myRangeLEM)
+    plot_thickness_histo(Cu,'Copper thickness distribution of the holes', outdirectory, 9, myRangeCu)
   
-def plot_thickness_histo(thicknesses, outdirectory):
+def plot_thickness_histo(thicknesses, title, outdirectory, figID, myRange):
+  with open(outdirectory + title.split(' ')[0] + '.txt', 'w') as outfile:
+    spamwriter = csv.writer(outfile, delimiter=';')
+    spamwriter.writerow(thicknesses)
   binsize = 5. #microns
-  nbins=int((max(thicknesses)*1.01-min(thicknesses)*0.99)/binsize)
+  if myRange == []:
+    myRange = [min(thicknesses)*0.99,max(thicknesses)*1.01]
+  nbins=int((myRange[1]-myRange[0])/binsize)
   df_thicknesses = pandas.DataFrame({'thick':thicknesses})
-  fig = plt.figure(8,figsize=(9, 9))
+  statbox = FormStatBox(df_thicknesses['thick'])
+  fig = plt.figure(figID,figsize=(9, 9))
   sb = fig.add_subplot(111)
-  sb.set_title('Mean thickness distribution of the 25 holes')
+  sb.set_title(title)
   sb.set_xlabel('Thickness(micrometer)')
   sb.set_ylabel('count / 5 microns')
-  i_count, binned_thick , _ = sb.hist(df_thicknesses['thick'], bins=nbins, range = [min(thicknesses)*0.99,max(thicknesses)*1.01])
-  fig.savefig(outdirectory  + "thickness_histo.pdf")
+  i_count, binned_thick , _ = sb.hist(df_thicknesses['thick'], bins=nbins, range = myRange)
+  sb.text(sb.get_xlim()[0], 0.5*i_count.max(), statbox, horizontalalignment='left', color = 'r', fontsize = 20)
+  fig.savefig(outdirectory  + title.split(' ')[0] + '.pdf')
+  print("   thickness histo saved in " + outdirectory + title.split(' ')[0] + '.pdf')
   
   
 def plot_2D_map(z,sigma,figID,title, savename, row, col, v0 = 800, v1 = 1300, outdirectory = "./"):
