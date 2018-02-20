@@ -33,7 +33,7 @@ fig = plt.figure(0,figsize=(9, 9))
 sb = fig.add_subplot(111)
 sb.set_title(title)
 sb.set_xlabel('Thickness difference(micrometer)')
-sb.set_ylabel('count / 5 microns')
+sb.set_ylabel('count / 1 microns')
 i_count, binned_dz , _ = sb.hist(df_dz['dz'], bins=nbins, range = myRange)
 #binned_dz = binned_dz[:-1]
 #print("Fitting thick diff...")
