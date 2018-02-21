@@ -41,15 +41,20 @@ def cut(xz, myrange):
       return xz
   
 def FormStatBox(df_z_selected):
-  return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),0)) + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),2))
+  return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nmean : ' + str(round(Decimal(df_z_selected.describe()['mean']),0))+'$\; \mu m$' + '\nstd : ' + str(round(Decimal(df_z_selected.describe()['std']),0))+'$\; \mu m$'
   
-def FormFitBox(param, df_z_selected, chisquare):
+def FormFitBox(param, df_z_selected, chisquare, binsize = 0):
   if len(param) == 0:
     return 'fit failed'
   if len(param) == 3:
-    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n Int=' + str(round(Decimal(param[0]),2)) + '\n mean=' + str(round(Decimal(param[1]),2)) + '\n sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n  chi2=' + str(abs(round(Decimal(chisquare[0]),2)))
+    if binsize != 0:
+      param[0] = param[0]/binsize;
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n Int=' + str(round(Decimal(param[0]),0)) + '\n mean=' + str(round(Decimal(param[1]),0))+'$\; \mu m$' + '\n sigma=' + str(abs(round(Decimal(param[2]),0)))+'$\; \mu m$' + '\n  chi2=' + str(abs(round(Decimal(chisquare[0]),2)))
   elif len(param) == 6:
-    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),2)) + '\n  mean=' + str(round(Decimal(param[1]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[2]),2))) + '\n  chi2=' + str(abs(round(Decimal(chisquare[0]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),2)) + '\n  mean=' + str(round(Decimal(param[4]),2)) + '\n  sigma=' + str(abs(round(Decimal(param[5]),2))) + '\n  chi2=' + str(abs(round(Decimal(chisquare[1]),2)))
+    if binsize != 0:
+      param[0] = param[0]/binsize;
+      param[3] = param[3]/binsize;
+    return 'count : ' + str(int(df_z_selected.describe()['count'])) + '\nFit result:\n First gaussian:\n  Int=' + str(round(Decimal(param[0]),0)) + '\n  mean=' + str(round(Decimal(param[1]),0))+'$\; \mu m$' + '\n  sigma=' + str(abs(round(Decimal(param[2]),0)))+'$\; \mu m$' + '\n  chi2=' + str(abs(round(Decimal(chisquare[0]),2))) + '\n Second gaussian:\n  Int=' + str(round(Decimal(param[3]),0)) + '\n  mean=' + str(round(Decimal(param[4]),0))+'$\; \mu m$' + '\n  sigma=' + str(abs(round(Decimal(param[5]),0)))+'$\; \mu m$' + '\n  chi2=' + str(abs(round(Decimal(chisquare[1]),2)))
   else:
     print("ERROR: unknown number of parameter in FormFitBox")
     exit(1)

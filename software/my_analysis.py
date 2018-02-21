@@ -58,8 +58,8 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
     y1, y2 = sb_plot_data.get_window_extent().get_points()[:, 1]
     yscale = (y2-y1)/(1.1*i_count_sup.max())
     sb_plot_data.set_title('hole  ' + str(i+1) + ' LEM', fontsize = 1.2*fontsize)
-    sb_plot_data.set_xlabel('z(micrometer)', fontsize = .8*fontsize, labelpad = .1)
-    sb_plot_data.set_ylabel('count / 5 microns', fontsize = .8*fontsize, labelpad = 1)
+    sb_plot_data.set_xlabel('z($\mu m$)', fontsize = .8*fontsize, labelpad = .1)
+    sb_plot_data.set_ylabel('count / '+str(binsize)+'$\; \mu m$', fontsize = .8*fontsize, labelpad = 1)
     sb_plot_data.tick_params(axis='both', which='major', labelsize = .7*fontsize, length = .8*fontsize, width = .1*fontsize, pad = 0*fontsize)
     sb_plot_data.set_ylim([0,1.1*i_count_sup.max()])
     sb_plot_data.title.set_position([.5,.9])
@@ -84,7 +84,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
       sb_plot_data.plot(fitted_func1[0], fitted_func1[1], 'r-', linewidth = .5)
     if len(fitted_func2) != 0:
       sb_plot_data.plot(fitted_func2[0], fitted_func2[1], 'r-', linewidth = .5)
-    fitbox = FormFitBox(gaussians_params, df_z_sup['z'], chisquare)
+    fitbox = FormFitBox(gaussians_params, df_z_sup['z'], chisquare, binsize)
     sb_plot_data.text(plot_range_sup[0], 0.3*i_count_sup.max(), fitbox, horizontalalignment='left', color = 'r', fontsize = .7*fontsize)
     fig.add_subplot(sb_plot_data)
     for xz in range(0,len(l_l_all_data[k-1])):
@@ -108,24 +108,14 @@ def plot_holes(l_l_all_data, row, col, name = "", outdirectory = "./"):
     sb_plot_holes[i].scatter(tpl_x, tpl_z, s=1, color='black')
     sb_plot_holes[i].set_title("row "+str(i+1))
     if i == row-1:
-      sb_plot_holes[i].set_xlabel('x(micrometer)', fontsize=14)
-    sb_plot_holes[i].set_ylabel('z(micrometer)', fontsize=12)
+      sb_plot_holes[i].set_xlabel('x($\mu m$)', fontsize=14)
+    sb_plot_holes[i].set_ylabel('z($\mu m$)', fontsize=12)
   fig.savefig(outdirectory + name + "holes.pdf")
   print("   Histo saved in " + outdirectory + name + "holes.pdf")
   
 def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLaser = 0, outdirectory = "./"):
   thick, sigmathick, FR4, sigmaFR4, Cu, NLem, NFR4, N, sigmarble = np.array(thick_sigmathick_rim_sigmarim)
-  #sigmaMEANthick = [ math.sqrt(sigthick**2/nLem**2 + sigmar**2/n**2) if nLem !=0 and n != 0 else np.nan for sigthick,nLem,sigmar,n in zip(sigmathick,NLem,sigmarble,N) ]
-  #sigmaMEANFR4 = [ math.sqrt(sigfr4**2/nFR4**2 + sigmar**2/n**2) if nFR4 !=0 and n != 0 else np.nan for sigfr4,nFR4,sigmar,n in zip(sigmaFR4,NFR4,sigmarble,N) ]
-  #sigmaMEANCU = [ math.sqrt(sigfr4**2 + sigthick**2) for sigfr4,sigthick in zip(sigmaMEANFR4,sigmaMEANthick) ]
-  #sigmaMEANFR4 = [ math.sqrt(4*sigfr4**2 + sigthick**2) for sigfr4,sigthick in zip(sigmaMEANFR4,sigmaMEANthick) ]
-  #print("Result : ")
-  #for i in range(0,len(thick)):
-    #if sigmathick[i]**2-sigmaCopperLaser**2 < 0:
-      #print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: NaN")
-    #else:
-      #print(" Hole ",i,": ",thick[i],"+/-",sigmaMEANthick[i]," microns thick. Thickness standard deviation: ",math.sqrt(sigmathick[i]**2-sigmaCopperLaser**2))
-    #print("    Cu: ",Cu[i],"+/-",sigmaMEANCU[i]," microns, FR4: ", FR4[i],"+/-",sigmaMEANFR4[i]," microns")
+  
   plot_2D_map(thick,[],4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
   #plot_2D_map(FR4,sigmaMEANFR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col, 800, 1300, outdirectory)
   plot_2D_map(Cu,[],7,"map of copper thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
@@ -150,7 +140,7 @@ def plot_thickness_histo(thicknesses, title, outdirectory, figID, myRange):
   with open(outdirectory + title.split(' ')[0] + '.txt', 'w') as outfile:
     spamwriter = csv.writer(outfile, delimiter=';')
     spamwriter.writerow(thicknesses)
-  binsize = 5. #microns
+  binsize = 5 #microns
   if myRange == []:
     myRange = [min(thicknesses)*0.99,max(thicknesses)*1.01]
   nbins=int((myRange[1]-myRange[0])/binsize)
@@ -159,8 +149,8 @@ def plot_thickness_histo(thicknesses, title, outdirectory, figID, myRange):
   fig = plt.figure(figID,figsize=(9, 9))
   sb = fig.add_subplot(111)
   sb.set_title(title)
-  sb.set_xlabel('Thickness(micrometer)')
-  sb.set_ylabel('count / 5 microns')
+  sb.set_xlabel('Thickness($\mu m$)')
+  sb.set_ylabel('count / '+str(binsize)+'$\; \mu m$')
   i_count, binned_thick , _ = sb.hist(df_thicknesses['thick'], bins=nbins, range = myRange)
   sb.text(sb.get_xlim()[0], 0.5*i_count.max(), statbox, horizontalalignment='left', color = 'r', fontsize = 20)
   fig.savefig(outdirectory  + title.split(' ')[0] + '.pdf')
