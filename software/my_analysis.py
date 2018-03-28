@@ -25,8 +25,13 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
   fontsize = 10
   #if row == 1:
     #fontsize = 40
+  analyzed_holes = []
   for i in range(0,len(l_l_cut_data)):
     print("   Analysing hole ",i+1,"...")
+    if l_l_cut_data[i] == [[],[]]:
+      print("  Empty hole")
+      continue
+    analyzed_holes.append(i+1)
     plot_color = 'b'
     plot_range_sup = [900,1300]
     binsize = 5 #microns
@@ -93,7 +98,7 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
   fig.savefig(outdirectory + "holes_histo.pdf")
   print("   Holes histograms saved in " + outdirectory + "holes_histo.pdf")
   plot_holes(l_l_all_data, row, col, "", outdirectory)
-  plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLaser, outdirectory)
+  plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, analyzed_holes, sigmaCopperLaser, outdirectory)
 
 def plot_holes(l_l_all_data, row, col, name = "", outdirectory = "./"):
   ID = 2
@@ -113,12 +118,12 @@ def plot_holes(l_l_all_data, row, col, name = "", outdirectory = "./"):
   fig.savefig(outdirectory + name + "holes.pdf")
   print("   Histo saved in " + outdirectory + name + "holes.pdf")
   
-def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLaser = 0, outdirectory = "./"):
+def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, analyzed_holes, sigmaCopperLaser = 0, outdirectory = "./"):
   thick, sigmathick, FR4, sigmaFR4, Cu, NLem, NFR4, N, sigmarble = np.array(thick_sigmathick_rim_sigmarim)
   
-  plot_2D_map(thick,[],4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, 1050, 1250, outdirectory)
+  plot_2D_map(thick,[],4,"map of LEM thickness. Each pixel is a measurement hole","2D_LEM_thickness_distri.pdf", row, col, analyzed_holes, 1050, 1250, outdirectory)
   #plot_2D_map(FR4,sigmaMEANFR4,5,"map of FR4 thickness. Each pixel is a measurement hole","2D_FR4_thickness_distri.pdf", row, col, 800, 1300, outdirectory)
-  plot_2D_map(Cu,[],7,"map of copper thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, 30,90, outdirectory)
+  plot_2D_map(Cu,[],7,"map of copper thickness. Each pixel is a measurement hole","2D_rim_thickness_distri.pdf", row, col, analyzed_holes, 30,90, outdirectory)
   mean_thick = np.mean(thick)
   if mean_thick == 0:
     print("Mean LEM thickness is 0")
@@ -126,7 +131,7 @@ def plot_thicknesses_map(thick_sigmathick_rim_sigmarim, row, col, sigmaCopperLas
   thick_relat = np.array([ thi - mean_thick for thi in thick ])
   #sigma_mean = math.sqrt(sum([sig**2 for sig in sigmaMEANthick]))/len(thick)
   #sigma_relat = np.array([ 100*math.sqrt(sig**2+thi**2*sigma_mean**2/mean_thick**2)/mean_thick for sig,thi in zip(sigmaMEANthick, thick) ])
-  plot_2D_map(thick_relat,[],6,"map of relative LEM thickness compared to mean thickness. Each pixel is a measurement hole","2D_relat_LEM_thickness_distri.pdf", row, col, -50,50, outdirectory)
+  plot_2D_map(thick_relat,[],6,"map of relative LEM thickness compared to mean thickness. Each pixel is a measurement hole","2D_relat_LEM_thickness_distri.pdf", row, col, analyzed_holes, -50,50, outdirectory)
   myRangeLEM = [1050,1200]
   myRangeCu = [30,90]
   if col*row != 25:
@@ -157,12 +162,12 @@ def plot_thickness_histo(thicknesses, title, outdirectory, figID, myRange):
   print("   thickness histo saved in " + outdirectory + title.split(' ')[0] + '.pdf')
   
   
-def plot_2D_map(z,sigma,figID,title, savename, row, col, v0 = 800, v1 = 1300, outdirectory = "./"):
+def plot_2D_map(z,sigma,figID,title, savename, row, col, analyzed_holes, v0 = 800, v1 = 1300, outdirectory = "./"):
   fig = plt.figure(figID,figsize=(3*col, 3*row))
   sb_plot_2D_map = fig.add_subplot(111)
   
-  x = [i%(col)+1 for i in range(0,len(z)) if z[i] != 0]
-  y = [row-(int(i/col)) for i in range(0,len(z)) if z[i] != 0]
+  x = [(analyzed_holes[i]-1)%(col)+1 for i in range(0,len(z)) if z[i] != 0]
+  y = [row-(int((analyzed_holes[i]-1)/col)) for i in range(0,len(z)) if z[i] != 0]
   z = z[z != 0]
   
   marker_size = good_marker_size(x,y,fig,sb_plot_2D_map)

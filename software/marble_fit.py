@@ -152,6 +152,9 @@ def marble_fit(l_marble_data, l_l_cut_data = None, ID = 1, outdirectory = "./", 
     print("   substracting marble from data...")
     if not l_l_cut_data is None:
       for l_cut_data in l_l_cut_data:
+        if l_cut_data == [[],[]]:
+          l_l_corrected_data.append([[],[]])
+          continue
         lx,lz = zip(*[ [x,(z - lr_fit.predict(x))[0]] for x,z in zip(l_cut_data[0],l_cut_data[1]) ])
         l_l_corrected_data.append([list(lx),list(lz)])
     print("   plotting marble data...")

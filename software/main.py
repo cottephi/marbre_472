@@ -19,8 +19,7 @@ def usage():
   print("Usage is:")
   print("-h : print this message")
   print("-i path/to/file : input data file")
-  print("-c : cut file, where one can specify x or z cuts")
-  print("-a : cali files (marbles and, possibly, cales)")
+  print("-a : Do marble calibration")
   print("-m : to specify a single marble file to be used as reference")
   print("-s : to apply the separation from the cut file")
   print("-t : only plot raw data and cali data. Usefull to quickly check the aspect of the measurements")
@@ -168,14 +167,13 @@ def sort_data(lines, data_arg, row = 0):
   ################for line in lines:#####################
   if not do_cuts:
     cutdata.append(rawdata)
-  cutdata = [ xz for xz in cutdata if xz != [[],[]] ]
+  #cutdata = [ xz for xz in cutdata if xz != [[],[]] ]
   return [cutdata, rawdata]
   
 def main(argv):
 
-  #Booleans to ID the arguments p
+  #Booleans to ID the arguments
   opt_cali_file = False
-  opt_cut_file = False
   opt_data = False
   data_arg = ""
   opt_marble_fit_file = False
@@ -188,9 +186,12 @@ def main(argv):
   l_other_marble_file = []
   sigmaCopperLaser = 0
   
+  row = 5
+  col = 5
+  
   #Read the arguments
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hi:cam:st", [])
+    opts, args = getopt.getopt(sys.argv[1:], "hi:am:st", [])
   except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -201,8 +202,6 @@ def main(argv):
       exit(0)
     elif opt == "-a":
       opt_cali_file = True
-    elif opt == "-c":
-      opt_cut_file = True
     elif opt == "-i":
       opt_data = True
       data_arg = arg
@@ -227,8 +226,6 @@ def main(argv):
       print("ERROR: marble fit file " + marble_fit_file_arg + " not found.")
       exit(1)
       
-
-  
   l_datafiles = []
   while data_arg[-1] == '/':
     data_arg = data_arg[:-1]
@@ -251,11 +248,11 @@ def main(argv):
   
   if opt_cali_file:
     l_marble_file, l_cale_file, l_other_marble_file = load_cali(data_arg, opt_marble_fit_file, marble_fit_file_arg)
-  row = len(l_datafiles)
+  #row = len(l_datafiles)
   l_l_cutdata = []
   l_l_raw_data = []
   l_l_glued_cutdata = [[[],[]]]
-  col = 0
+  #col = 0
   sigmarble = 0
   
   for i in range(0,len(l_datafiles)):
@@ -277,8 +274,8 @@ def main(argv):
       print(" ...done")
       print("")
     l_l_cutdata = l_l_cutdata + tmp_l_l_cut_data
-    if i == 0:
-      col = len(l_l_cutdata)
+    #if i == 0:
+      #col = len(l_l_cutdata)
       
       
   if l_other_marble_file != []:

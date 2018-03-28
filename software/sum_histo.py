@@ -6,7 +6,7 @@ from decimal import Decimal
 from toolbox import *
 import math
 
-LEMs = ["CFR-36/A-001", "CFR-35/A-053", "CFR-35/A-054", "CFR-35/A-055", "CFR-35/A-057"]
+LEMs = ["CFR-35/A-059", "CFR-35/A-053", "CFR-35/A-054", "CFR-35/A-055", "CFR-35/A-057", "CFR-35/A-062", "CFR-35/A-065", "CFR-35/A-067", "CFR-35/A-068", "CFR-35/A-069"]
 analysis = ["LEM", "Copper"]
 figID = 0
 
@@ -14,8 +14,10 @@ for ana in analysis:
   df_data = [ pandas.DataFrame({'z':list(map(float,open("../data/eltos/" + lem + "/plots/"+ana+".txt","r").readline().split("\n")[0].split(";")))}) if os.path.isfile("../data/eltos/" + lem + "/plots/"+ana+".txt") else print("../data/eltos/" + lem + "/plots/"+ana+".txt not found") for lem in LEMs ]
 
   std_devs = []
+  all_data = pandas.DataFrame()
   for i in range(0,len(df_data)):
-    df_data[i] = df_data[i].ix[ df_data[i]['z'] > 1e-3]
+    df_data[i] = df_data[i].ix[ df_data[i]['z'] > 1e-3 ]
+    all_data = all_data.append(df_data[i], ignore_index=True)
     std_devs.append(df_data[i]['z'].describe()['std'])
     column = "\\mathrm{" + LEMs[i] + ": }" + str(int(df_data[i]['z'].describe()['mean'])) + " \pm " + str(int(std_devs[-1]/math.sqrt(len(df_data[i])))) + "\;\mu m \\mathrm{; RMS: }" + str(int(std_devs[-1])) + "\;\mu m"
     df_data[i].rename(columns={'z':column}, inplace = True)
@@ -40,3 +42,14 @@ for ana in analysis:
   sb.legend(loc='best')
   fig.savefig("./"+ana+"_sum_histo.pdf")
   figID = figID + 1
+  
+  statbox = FormStatBox(all_data['z'])
+  fig2 = plt.figure(figID, figsize=(9, 9))
+  sb2 = fig2.add_subplot(111)
+  sb2.set_xlabel('Thickness ($\mu m$)')
+  sb2.set_ylabel('count / ' + str(int(binsize)) + ' $\mu m$')
+  i_count, binned_z , _  = sb2.hist(all_data[all_data.columns[0]], bins=nbins, range = myRange, ls = "solid", edgecolor = 'black', linewidth = 1, label=r'$'+all_data.columns[0]+'$')
+  sb2.text(myRange[0], 0.3*i_count.max(), statbox, horizontalalignment='left', color = 'r')#, fontsize = .7*fontsize)
+  figID = figID + 1
+  fig2.savefig("./"+ana+"_sum_all_histo.pdf")
+  
