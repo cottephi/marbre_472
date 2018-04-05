@@ -195,18 +195,18 @@ def mydoublefit(df_z, binned_z, i_count, maxima, plot_range, sigmarble):
   print("    Fitting whole LEM...")
   gaussians_param1, chisquare1, result1 = singlegaussfit(range_z1, range_count1, fit_par1, fit_par_range1)
   chisquare = [chisquare1]
-  #if chisquare1 > 50:
-    #print("   Fit failed")
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #hick_sigmathick_rim_sigmarim.append(0)
-    #thick_sigmathick_rim_sigmarim.append(0)
-    #return thick_sigmathick_rim_sigmarim, [], [], [], []
+  if len(gaussians_param1) == 0:
+    print("   Fit failed")
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    thick_sigmathick_rim_sigmarim.append(0)
+    return thick_sigmathick_rim_sigmarim, [], [], [], []
   z1 = gaussians_param1[1]
   sigma1 = gaussians_param1[2]
   chisquares = []

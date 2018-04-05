@@ -61,11 +61,11 @@ def FormFitBox(param, df_z_selected, chisquare, binsize = 0):
 
 
 def singlegaussfit(x,proba,par, range_p = []):
-  out = []
+  p = []
   chisquare = 100
   if len(par)+len(range_p) > len(x):
     print("   You gave me less x than parameters, can not fit in those conditions!")
-    return None, chisquare, None
+    return [], chisquare, [np.arange(0,100),np.arange(0,100)]
   print("    Fit attempt around possible mean ", par[1], "...")
   if range_p == []:
     p,cov,infodict,mesg,ier = leastsq(e_single_gauss_fit, par[:], args=(x, proba), maxfev=100000, full_output=1)

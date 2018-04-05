@@ -6,7 +6,7 @@ from decimal import Decimal
 from toolbox import *
 import math
 
-LEMs = ["CFR-35/A-059", "CFR-35/A-053", "CFR-35/A-054", "CFR-35/A-055", "CFR-35/A-057", "CFR-35/A-062", "CFR-35/A-065", "CFR-35/A-067", "CFR-35/A-068", "CFR-35/A-069"]
+LEMs = ["CFR-35/A-059", "CFR-35/A-053", "CFR-35/A-054", "CFR-35/A-055", "CFR-35/A-057", "CFR-35/A-062", "CFR-35/A-065", "CFR-35/A-067", "CFR-35/A-068", "CFR-35/A-069", "CFR-35/A-070", "CFR-35/A-072", "CFR-35/A-066"]
 analysis = ["LEM", "Copper"]
 figID = 0
 
