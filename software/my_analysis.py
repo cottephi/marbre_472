@@ -22,11 +22,15 @@ def my_analysis(l_l_cut_data, row = 1, col = 1, sigmarble = 0, sigmaCopperLaser 
   l_l_all_data = []
   k = 0
   thick_sigmathick_rim_sigmarim = [[],[],[],[],[],[],[],[],[]]
+  ignored_holes = [12]
   fontsize = 10
   #if row == 1:
     #fontsize = 40
   analyzed_holes = []
   for i in range(0,len(l_l_cut_data)):
+    if i in ignored_holes:
+      print("   Hole",i," is ignored")
+      continue
     print("   Analysing hole ",i+1,"...")
     if l_l_cut_data[i] == [[],[]]:
       print("  Empty hole")

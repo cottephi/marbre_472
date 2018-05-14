@@ -5,13 +5,15 @@ import matplotlib.pyplot as plt
 from decimal import Decimal
 from toolbox import *
 import math
+from glob import glob
 
-LEMs = ["CFR-35/A-059", "CFR-35/A-053", "CFR-35/A-054", "CFR-35/A-055", "CFR-35/A-057", "CFR-35/A-062", "CFR-35/A-065", "CFR-35/A-067", "CFR-35/A-068", "CFR-35/A-069", "CFR-35/A-070", "CFR-35/A-072", "CFR-35/A-066"]
+LEMs = sorted(glob("../data/eltos/CFR-35/*"))
+#["CFR-35/A-059", "CFR-35/A-053", "CFR-35/A-054", "CFR-35/A-055", "CFR-35/A-057", "CFR-35/A-062", "CFR-35/A-065", "CFR-35/A-067", "CFR-35/A-068", "CFR-35/A-069", "CFR-35/A-070", "CFR-35/A-072", "CFR-35/A-066", "CFR-35/A-076", "CFR-35/A-075"]
 analysis = ["LEM", "Copper"]
 figID = 0
 
 for ana in analysis:
-  df_data = [ pandas.DataFrame({'z':list(map(float,open("../data/eltos/" + lem + "/plots/"+ana+".txt","r").readline().split("\n")[0].split(";")))}) if os.path.isfile("../data/eltos/" + lem + "/plots/"+ana+".txt") else print("../data/eltos/" + lem + "/plots/"+ana+".txt not found") for lem in LEMs ]
+  df_data = [ pandas.DataFrame({'z':list(map(float,open(lem + "/plots/"+ana+".txt","r").readline().split("\n")[0].split(";")))}) if os.path.isfile(lem + "/plots/"+ana+".txt") else print(lem + "/plots/"+ana+".txt not found") for lem in LEMs ]
 
   std_devs = []
   all_data = pandas.DataFrame()
@@ -19,7 +21,8 @@ for ana in analysis:
     df_data[i] = df_data[i].ix[ df_data[i]['z'] > 1e-3 ]
     all_data = all_data.append(df_data[i], ignore_index=True)
     std_devs.append(df_data[i]['z'].describe()['std'])
-    column = "\\mathrm{" + LEMs[i] + ": }" + str(int(df_data[i]['z'].describe()['mean'])) + " \pm " + str(int(std_devs[-1]/math.sqrt(len(df_data[i])))) + "\;\mu m \\mathrm{; RMS: }" + str(int(std_devs[-1])) + "\;\mu m"
+    lemi = LEMs[i].split("/")[-1]
+    column = "\\mathrm{" + lemi + ": }" + str(int(df_data[i]['z'].describe()['mean'])) + " \pm " + str(int(std_devs[-1]/math.sqrt(len(df_data[i])))) + "\;\mu m \\mathrm{; RMS: }" + str(int(std_devs[-1])) + "\;\mu m"
     df_data[i].rename(columns={'z':column}, inplace = True)
 
   #data_ranges_mins, data_ranges_maxs = zip(*[ [min(df_z[df_z.columns[0]]), max(df_z[df_z.columns[0]])] for df_z in df_data ])

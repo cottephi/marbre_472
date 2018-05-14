@@ -1,0 +1,36 @@
+-Mettre le gaz (à droite de la pièce)
+-Démarrer l'ordinateur si il est éteint. Le code bitlocker est scotché sur le PC.
+-Si l'ordi est déjà allumé, se logger sur le compte aatlasns (mdp: Atlaslm1)
+-Lancer le logiciel d'acquisition, cliquer sur "connecter", puis sur "system" (mdp: surface)
+
+for lem in lems_a_mesurer:
+  -créer le dossier "C:\WA105\eltos\CFR35\identfiant_du_lem". L'dentifiant du LEM est écrit près des connecteurs HT.
+  -Nettoyer le marbre à l'emplacement du LEM (aspirateur surtout)
+  -Placer le LEM. Attention à ne pas le frotter sur le marbre
+  -Nettoyer la mousse à l'aspirateur, des deux côtés.
+  -Placer la mousse sur le LEM. Attention, encore une fois, à ne pas faire frotter le LEM!
+  -Placer la plaque sur le LEM. Idem, de pas faire frotter le LEM
+  -Placer les pièces métaliques autour de la plaque, ne pas les serrer tout de suite
+  for line in lignes_de_la_plaque:
+    -Placer la poutre sur les marques
+    -Placer les briques sur la plaque
+    -S'assurer que le laser passe au bon endroit
+    -Placer le laser à la limite gauche du premier trou de la ligne
+    -Dans le logiciel, aller dans "configuration", "encoders", et appuyer sur "go" pour définir le 0 en x
+    -Aller ensuite dans "configuration", "basic", et mettre l'intensité à 100%
+    -Mesurer le marbre à gauche et l'enregistrer dans le dossier du LEM sous le nom "marble_ri_1", i étant le numéro de colonne.
+    -Faire la même chose à droite ("marble_ri_2")
+    -Retourner dans "configuration", "basic" et remettre l'intensité à 30%
+    for hole in trous_de_la_ligne:
+      -S'assurer qu'on voit les trous du LEM quand le laser passe. Ajuster la poutre en conséquence.
+      -Effectuer la mesure et l'enregistrer dans le dossier du LEM sous "ri_hj", j étant le numéro du trou de la ligne
+      -Pour les deux premières rangées, ne pas serrer les plaques amovibles. Les serrer pour les trois dernieres, et que du coté où se trouve le trou mesuré. Pas pour les trous au milieu des lignes
+  -Pousser la poutre, bloquer le chariot hors du LEM
+  -Enlever les poutres et les pièces métaliques
+  -Aspirer la plaque métalique et l'enlever
+  -Enlever la mousse
+  -Ranger le LEM
+  -Transférer le dossier du LEM sur l'ordinateur avec le programme d'analyse
+  -Aller avec un terminal dans "marbre_472/data". Placer le dossier du LEM dans "marbre_472/data/eltos/CFR-35/", exécuter sort_data.sh data/eltos/CFR-35/identfiant_du_lem
+  -Aller avec le terminal dans "marbre_472/software". Exécuter python3 main.py -i ../data/eltos/CFR-35/identfiant_du_lem -a -s
+  -Vérifier les plots
